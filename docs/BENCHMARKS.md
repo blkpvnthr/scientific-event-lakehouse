@@ -41,6 +41,27 @@ warm JVM; the first repetition includes JIT warmup).
 | Duplicate events | 0 |
 | Integrity status | PASS |
 
+## Milestones 4–6 — Silver / Delta / Gold (full dataset)
+
+Measured on the full 281,421-record dataset (warm JVM, single measurement;
+includes read + compute + write + reconciliation):
+
+| Stage | Duration | Output |
+|---|---:|---|
+| Silver normalization + quality | 11.15 s | 281,421 valid / 0 quarantined |
+| Delta MERGE (into existing tables) | 11.37 s | 281,421 current / 281,421 revisions |
+| Gold (fact + 5 dims + 10 datasets) | 6.13 s | fact 281,421; 16 datasets |
+
+Delta MERGE time reflects merging 281k rows against already-populated tables
+(the most expensive case); a first-time create is faster. These are single warm
+measurements intended as order-of-magnitude references, not statistical means.
+
+## Synthetic end-to-end (CI)
+
+`tests/test_end_to_end.py` runs Bronze→Silver→Delta→Gold plus an idempotent
+replay on a 3-record synthetic run in ~20–25 s wall clock (dominated by repeated
+SparkSession/Delta operations), with no network or credentials.
+
 ### Measurement notes & limitations
 
 - `duration_seconds` is measured inside `build_bronze` and covers checksum

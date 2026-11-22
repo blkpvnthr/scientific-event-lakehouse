@@ -7,8 +7,9 @@
 ## Diagnose
 ```python
 from src.recovery import detect_incomplete_run, is_bronze_output_present
-detect_incomplete_run("<run_id>")      # True -> ingestion never completed
-is_bronze_output_present("<run_id>")   # False -> Bronze did not finish
+
+detect_incomplete_run("<run_id>")  # True -> ingestion never completed
+is_bronze_output_present("<run_id>")  # False -> Bronze did not finish
 ```
 - Check structured logs for the failing `stage` and `failure_category`.
 - Inspect the Delta transaction history: `DeltaTable.forPath(...).history()`.

@@ -80,7 +80,7 @@ Apache Airflow, Docker, and Terraform.
 | 9 | Apache Airflow orchestration | Complete (DAGs import-verified) |
 | 10 | Monitoring, recovery, and replay | Complete (locally verified) |
 | 11 | CI/CD and system integration | Complete (workflows validated) |
-| 12 | Analytics, documentation, and benchmarks | Planned |
+| 12 | Analytics, documentation, and benchmarks | Complete (locally verified) |
 
 ---
 
@@ -1219,6 +1219,51 @@ flowchart TD
 
 > The GitHub Actions runs themselves execute on GitHub once pushed; they are
 > authored and locally validated here but not triggered without a push.
+
+---
+
+## Milestone 12: Analytics Dashboard, Documentation, and Benchmarks
+
+Milestone 12 adds a Streamlit dashboard over the **actual** Gold datasets, measured
+benchmarks for every stage, and the portfolio/architecture documentation.
+
+### Dashboard
+
+```mermaid
+flowchart LR
+    G[(Gold Parquet)] --> DL[dashboard/data.py<br/>pandas, no Spark]
+    DL --> APP[Streamlit app]
+    APP --> V1[Annual / monthly trends]
+    APP --> V2[Magnitude / depth distributions]
+    APP --> V3[Geographic map]
+    APP --> V4[Significant events]
+    APP --> V5[Source networks / data quality]
+    F[Filters: magnitude, depth, network, event type] -.-> APP
+
+    style G fill:#B8860B,color:#fff
+    style APP fill:#15803D,color:#fff
+```
+
+### Implemented Capabilities
+
+- `dashboard/data.py`: testable data-access layer reading real Gold Parquet.
+- `dashboard/app.py`: Streamlit UI with filters (magnitude, depth, network, event
+  type) and trend/distribution/geographic/significant/quality views.
+- Measured benchmarks for Bronze, Silver, Delta, and Gold (see
+  [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md)).
+- Full documentation set (architecture, data model, data dictionary, deployment,
+  security, testing, runbooks, cost estimates, walkthrough, interview prep).
+
+### Verified Acceptance Results
+
+- Dashboard reads real Gold: 281,421 events, annual counts sum to 281,421, M≥6
+  filter returns 1,333 — all consistent with the pipeline outputs (no hardcoded
+  numbers).
+- Measured: Silver 11.15 s, Delta 11.37 s, Gold 6.13 s on the full dataset.
+- 3 dashboard data-layer tests pass; app imports cleanly.
+
+Run it: `make dashboard` (build Gold first with `make pipeline`). These views are
+descriptive summaries of a magnitude-filtered catalog, **not** prediction.
 
 ---
 
