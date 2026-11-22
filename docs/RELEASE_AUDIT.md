@@ -27,6 +27,8 @@ Audited range: `v0.2.0` (83851c7) → `main`
 | D2 | High | Root `Dockerfile` base `python:3.11-slim` now resolves to Debian 13 (trixie), which dropped `openjdk-17` → build failure | Pin base to `python:3.11-slim-bookworm` (Debian 12 ships openjdk-17) | Image builds |
 | D3 | Low | `/opt/homebrew/opt/openjdk@17` default JAVA_HOME in `Makefile`/`settings.py` is macOS-specific | Kept as an **overridable default** (`?=` / `os.environ.get`); CI sets `JAVA_HOME` via setup-java; documented | N/A (by design) |
 | D4 | Low | Generated `.coverage` file was tracked in git | `git rm --cached`; added coverage artifacts to `.gitignore` | `git ls-files` clean |
+| D5 | Medium | CI missing dashboard deps → `test_dashboard.py` import error (pandas) in the first CI run | Install `requirements-dashboard.txt` in the lint-and-test job | CI re-run |
+| D6 | Medium | Third-party GitHub Actions (`gitleaks`, `opentofu/setup-opentofu`) referenced by mutable tags (supply-chain risk flagged by automated review) | Pinned both to immutable commit SHAs; workflow already uses least-privilege `permissions: contents: read` | CI re-run |
 
 No critical defects. D1 and D2 corrected before publication; D3 accepted (overridable).
 

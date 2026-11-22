@@ -62,7 +62,8 @@ jobs:
           pip-audit -r requirements-spark.txt || true
           pip-audit -r requirements-aws.txt || true
       - name: Secret scan (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
+        # Pinned to an immutable commit SHA (supply-chain hardening); v2.
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -71,7 +72,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v1
+      # Pinned to an immutable commit SHA (supply-chain hardening); v1.
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f
       - name: Format check
         run: tofu fmt -check -recursive infrastructure/terraform
       - name: Init and validate
