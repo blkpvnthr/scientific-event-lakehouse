@@ -35,6 +35,9 @@ validate: lint ## Lint + verify formatting without modifying files
 bronze: ## Build structured Bronze Parquet for RUN_ID
 	$(PYTHON) -m src.bronze.build_bronze --run-id $(RUN_ID)
 
+silver: ## Build Silver canonical model + data quality for RUN_ID
+	$(PYTHON) -m src.silver.build_silver --run-id $(RUN_ID)
+
 profile: ## Profile a completed ingestion run (RUN_ID)
 	$(PYTHON) -m src.profiling.profile_bronze --run-id $(RUN_ID)
 

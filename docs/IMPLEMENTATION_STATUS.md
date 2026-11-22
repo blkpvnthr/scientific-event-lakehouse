@@ -22,9 +22,9 @@ Last updated: 2026-11-22
 | # | Milestone | Branch | State |
 |---|---|---|---|
 | 0 | Repo & environment audit | main | ✅ done — plan + status written |
-| 3 | PySpark Bronze (Parquet) | feat/pyspark-bronze | ✅ done — 104 tests, acceptance verified |
-| 4 | Silver normalization + quality | feat/silver-processing | 🚧 next |
-| 5 | Delta Lake + versioning | feat/delta-lake-versioning | ⬜ todo |
+| 3 | PySpark Bronze (Parquet) | feat/pyspark-bronze | ✅ done — merged to main |
+| 4 | Silver normalization + quality | feat/silver-processing | ✅ done — 111 tests, acceptance verified |
+| 5 | Delta Lake + versioning | feat/delta-lake-versioning | 🚧 next |
 | 6 | Gold analytics | feat/gold-analytics | ⬜ todo |
 | 7 | AWS S3 integration | feat/aws-s3-storage | ⬜ todo |
 | 8 | Terraform IaC | feat/terraform-infrastructure | ⬜ todo |
@@ -48,9 +48,20 @@ Last updated: 2026-11-22
 - Docs: `data_dictionary/EARTHQUAKE_SCHEMA.md`, `BENCHMARKS.md`; README M3 section + diagram.
 - Tests: `tests/test_bronze.py`, `tests/test_spark_bronze_support.py`, `tests/conftest.py`.
 
+## Milestone 4 — delivered artifacts
+- `src/quality/rules.py` + `engine.py` — declarative rule set + SQL evaluator.
+- `src/silver/build_silver.py` — normalization, fingerprint, revision selection,
+  quarantine split, reconciliation, idempotent outputs.
+- Outputs: `silver/earthquake_events_current`, `earthquake_event_revisions`,
+  `quarantined_events`, `data_quality_results`.
+- Docs: `DATA_QUALITY.md`; README M4 section + diagram. Makefile `silver` target.
+- Tests: `tests/test_quality.py`, `tests/test_silver.py`.
+
 ## Resume notes
-Next action: implement Milestone 4 on `feat/silver-processing` — canonical
-event model from Bronze Parquet, normalization, configurable data-quality rule
-engine (`src/quality/`), deterministic revision selection, valid/quarantine
-split reconciling to Bronze input. Reads `data/warehouse/bronze`, writes
-`data/warehouse/silver`.
+Next action: implement Milestone 5 on `feat/delta-lake-versioning` — convert
+Silver outputs to transactional Delta tables (`silver.earthquake_events_current`,
+`earthquake_event_revisions`, `quarantined_events`, `data_quality_results`,
+`metadata.pipeline_runs`, `metadata.processing_watermarks`); idempotent MERGE
+keyed on event_id + content fingerprint; late-arrival / out-of-order handling;
+schema evolution; time travel. SparkSession already supports Delta via
+`build_spark_session(with_delta=True)`.
