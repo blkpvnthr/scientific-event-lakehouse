@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars and adjust. Do NOT commit terraform.tfvars.
+aws_region  = "us-east-1"
+environment = "dev"
+bucket_name = "scientific-event-lakehouse-dev-CHANGEME"
+force_destroy = false
+tags = {
+  Owner = "data-engineering"
+}

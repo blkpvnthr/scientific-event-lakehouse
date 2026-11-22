@@ -76,7 +76,7 @@ Apache Airflow, Docker, and Terraform.
 | 5 | Delta Lake versioning and schema evolution | Complete (locally verified) |
 | 6 | Gold analytical transformations | Complete (locally verified) |
 | 7 | AWS S3 integration | Complete (local + mocked S3) |
-| 8 | Terraform infrastructure | Planned |
+| 8 | Terraform infrastructure | Complete (validated, not applied) |
 | 9 | Apache Airflow orchestration | Planned |
 | 10 | Monitoring, recovery, and replay | Planned |
 | 11 | CI/CD and system integration | Planned |
@@ -1031,6 +1031,55 @@ flowchart TD
 Single-writer Delta on S3 only; no concurrent multi-writer guarantees are
 claimed. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) and
 [`docs/SECURITY.md`](docs/SECURITY.md).
+
+---
+
+## Milestone 8: Terraform Infrastructure
+
+Milestone 8 provides Infrastructure as Code for the AWS deployment: a secure S3
+bucket and a least-privilege IAM role, as reusable modules composed per
+environment. Configuration is validated locally; no resources are applied.
+
+### Infrastructure
+
+```mermaid
+flowchart TD
+    E[environments/dev] --> M1[module: s3_bucket]
+    E --> M2[module: iam]
+    M1 --> B[(S3 bucket)]
+    B --> P[Public access block]
+    B --> ENC[SSE encryption at rest]
+    B --> V[Versioning + lifecycle]
+    B --> TLS[TLS-only bucket policy]
+    M2 --> R[IAM role]
+    R --> POL[Least-privilege policy<br/>scoped to bucket]
+
+    style B fill:#FF9900,color:#000
+    style TLS fill:#B91C1C,color:#fff
+    style POL fill:#15803D,color:#fff
+```
+
+### Implemented Capabilities
+
+- Reusable `s3_bucket` and `iam` modules + `environments/dev` composition.
+- Public-access block, encryption at rest, TLS-only policy, versioning,
+  lifecycle expiry of noncurrent versions.
+- Least-privilege IAM role/policy scoped to a single bucket.
+- Provider version constraints, variables, outputs, example tfvars.
+
+### Verified Acceptance Results
+
+Validated with OpenTofu 1.13.9 (HCL-compatible with Terraform):
+
+```
+tofu fmt -check -recursive .   -> OK
+tofu init -backend=false       -> success
+tofu validate                  -> Success! The configuration is valid.
+```
+
+`terraform apply` is **never** run automatically (it creates billable resources
+and needs authorization). See [`infrastructure/terraform/README.md`](infrastructure/terraform/README.md)
+and [`docs/CLOUD_COST_ESTIMATES.md`](docs/CLOUD_COST_ESTIMATES.md).
 
 ---
 
