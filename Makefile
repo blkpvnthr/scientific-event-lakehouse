@@ -52,6 +52,15 @@ profile: ## Profile a completed ingestion run (RUN_ID)
 benchmark: ## Measure Bronze build performance (3 repetitions)
 	$(PYTHON) scripts/benchmark_bronze.py --run-id $(RUN_ID)
 
+airflow-up: ## Start local Airflow (Docker standalone) at http://localhost:8080
+	docker compose up -d
+
+airflow-down: ## Stop local Airflow
+	docker compose down
+
+dags-validate: ## Validate DAG imports in the isolated airflow venv
+	PYTHONPATH=. .venv-airflow/bin/python -m pytest tests/test_dags.py -q
+
 terraform-validate: ## Validate Terraform/OpenTofu infrastructure (no apply)
 	cd infrastructure/terraform && tofu fmt -check -recursive .
 	cd infrastructure/terraform/environments/dev && tofu init -backend=false && tofu validate

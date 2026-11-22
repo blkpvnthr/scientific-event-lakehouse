@@ -20,3 +20,6 @@ data/profiles/
 .terraform.lock.hcl
 terraform.tfvars
 crash.log
+
+# Airflow local venv
+.venv-airflow/

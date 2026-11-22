@@ -77,7 +77,7 @@ Apache Airflow, Docker, and Terraform.
 | 6 | Gold analytical transformations | Complete (locally verified) |
 | 7 | AWS S3 integration | Complete (local + mocked S3) |
 | 8 | Terraform infrastructure | Complete (validated, not applied) |
-| 9 | Apache Airflow orchestration | Planned |
+| 9 | Apache Airflow orchestration | Complete (DAGs import-verified) |
 | 10 | Monitoring, recovery, and replay | Planned |
 | 11 | CI/CD and system integration | Planned |
 | 12 | Analytics, documentation, and benchmarks | Planned |
@@ -1080,6 +1080,57 @@ tofu validate                  -> Success! The configuration is valid.
 `terraform apply` is **never** run automatically (it creates billable resources
 and needs authorization). See [`infrastructure/terraform/README.md`](infrastructure/terraform/README.md)
 and [`docs/CLOUD_COST_ESTIMATES.md`](docs/CLOUD_COST_ESTIMATES.md).
+
+---
+
+## Milestone 9: Apache Airflow Orchestration
+
+Milestone 9 adds reproducible workflow orchestration via Airflow and Docker.
+Orchestration logic lives in an Airflow-agnostic `src/orchestration` module (heavy
+imports deferred so DAGs parse without Spark), keeping tasks thin, idempotent, and
+unit-testable.
+
+### DAGs
+
+| DAG | Purpose |
+|---|---|
+| `historical_processing` | validate → Bronze → Silver → Delta → Gold → quality gate → report |
+| `incremental_ingestion` | watermark → interval → extract → … → merge → refresh Gold → quality |
+| `recovery_replay` | validate manifests → reprocess archived run → reconcile → report |
+
+```mermaid
+flowchart LR
+    V[validate_run] --> B[process_bronze] --> S[normalize_silver]
+    S --> D[merge_delta] --> G[build_gold] --> Q[quality_gate] --> R[publish_report]
+
+    style V fill:#6B7280,color:#fff
+    style D fill:#2563EB,color:#fff
+    style Q fill:#B91C1C,color:#fff
+    style R fill:#15803D,color:#fff
+```
+
+### Implemented Capabilities
+
+- Three DAGs with task retries, execution timeouts, and explicit dependencies.
+- Idempotent tasks (checksum-verified Bronze, fingerprint-keyed Delta) → retries
+  never duplicate records.
+- Watermark advanced only by the Delta step on success → failed runs don't
+  advance it; `max_active_runs=1` serializes incremental runs.
+- Overlapping incremental re-query window for revised events; documented USGS
+  query semantics; no large data in XCom (only small summary dicts).
+- Docker image (Java 17 + Spark/Delta) + `docker-compose.yml` (standalone).
+
+### Verified Acceptance Results
+
+- 4 orchestration unit tests pass (interval logic, run validation).
+- **DAGs import without errors** — verified with real Apache Airflow 2.10.5 in an
+  isolated venv (`tests/test_dags.py`): all three DAGs parse, every task has
+  retries ≥ 1 and an execution timeout.
+- `docker compose config` validates.
+
+Apache Airflow conflicts with the Spark dependency pinset, so DAG-import tests run
+in a dedicated venv; in the main `.venv` they skip automatically. See
+[`docs/LOCAL_DEVELOPMENT.md`](docs/LOCAL_DEVELOPMENT.md).
 
 ---
 

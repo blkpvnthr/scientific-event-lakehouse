@@ -1,0 +1,36 @@
+# Local Apache Airflow for the Scientific Event Data Lakehouse.
+#
+# Runs Airflow in standalone mode with the DAGs and pipeline source mounted. The
+# image includes Java 17 + the Spark/Delta runtime so the medallion tasks can
+# execute. Intended for local development/demo, not production.
+#
+#   docker compose up        # starts Airflow at http://localhost:8080
+#   docker compose down      # stops and removes containers
+#
+# Credentials are printed by the standalone command on first start.
+
+services:
+  airflow:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    command: standalone
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      PYTHONPATH: /opt/airflow
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-arm64
+      SPARK_LOCAL_IP: 127.0.0.1
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - ./src:/opt/airflow/src:ro
+      - ./sql:/opt/airflow/sql:ro
+      - ./data:/opt/airflow/data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5

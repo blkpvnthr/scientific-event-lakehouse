@@ -27,9 +27,9 @@ Last updated: 2026-11-22
 | 5 | Delta Lake + versioning | feat/delta-lake-versioning | ✅ done — merged to main |
 | 6 | Gold analytics | feat/gold-analytics | ✅ done — merged to main |
 | 7 | AWS S3 integration | feat/aws-s3-storage | ✅ done — merged to main |
-| 8 | Terraform IaC | feat/terraform-infrastructure | ✅ done — fmt/init/validate pass (OpenTofu) |
-| 9 | Airflow orchestration | feat/airflow-orchestration | 🚧 next |
-| 10 | Observability & recovery | feat/observability-recovery | ⬜ todo |
+| 8 | Terraform IaC | feat/terraform-infrastructure | ✅ done — merged to main |
+| 9 | Airflow orchestration | feat/airflow-orchestration | ✅ done — DAGs import-verified (airflow 2.10.5) |
+| 10 | Observability & recovery | feat/observability-recovery | 🚧 next |
 | 11 | CI/CD & production testing | feat/production-ci | ⬜ todo |
 | 12 | Dashboard, docs, benchmarks | feat/analytics-dashboard | ⬜ todo |
 
@@ -86,12 +86,20 @@ Last updated: 2026-11-22
 - `.gitignore` extended for TF state/tfvars. Makefile `terraform-validate`.
 - Docs: `CLOUD_COST_ESTIMATES.md`, `infrastructure/terraform/README.md`; README M8.
 
+## Milestone 9 — delivered artifacts
+- `src/orchestration/tasks.py` — idempotent task callables (deferred heavy imports).
+- `airflow/dags/{historical_processing,incremental_ingestion,recovery_replay}_dag.py`.
+- `airflow/Dockerfile` + root `Dockerfile` + `docker-compose.yml` (validated).
+- Tests: `tests/test_orchestration.py` (main venv), `tests/test_dags.py` (airflow venv).
+- DAG imports verified with apache-airflow 2.10.5 in `.venv-airflow`.
+- Docs: `LOCAL_DEVELOPMENT.md`; README M9. Makefile airflow-up/down, dags-validate.
+
 ## Resume notes
-Next action: implement Milestone 9 on `feat/airflow-orchestration` — Airflow
-DAGs (historical processing, incremental ingestion, recovery/replay) under
-`airflow/dags/`, with task retries, idempotent tasks, watermark-safe ordering,
-no large data in XCom. Provide docker-compose for local Airflow. DAG-import +
-task tests must pass without a running scheduler. Then M10 observability/recovery,
-M11 CI/CD (GitHub Actions), M12 Streamlit dashboard + benchmarks.
-Tooling installed so far: OpenJDK 17, Spark 3.5.3, delta-spark 3.2.1, boto3,
-moto, OpenTofu 1.13.9. Branch-per-milestone; merge to main after verification.
+Next action: implement Milestone 10 on `feat/observability-recovery` —
+structured logging (run ids, stage, durations, counts, redaction) in
+`src/monitoring/`, metrics collection, recovery/replay helpers in `src/recovery/`
+(failed-run detection, incomplete-output detection, safe restart), alerting hooks
+with local test impls, and operational runbooks under `docs/runbooks/`. Then M11
+CI/CD (GitHub Actions) and M12 Streamlit dashboard + benchmarks.
+Tooling: OpenJDK 17, Spark 3.5.3, delta-spark 3.2.1, boto3, moto, OpenTofu 1.13.9,
+apache-airflow 2.10.5 (.venv-airflow). 128 tests in main suite.
