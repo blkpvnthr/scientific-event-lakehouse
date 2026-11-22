@@ -6,9 +6,11 @@ USER root
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openjdk-17-jdk-headless procps \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    # Architecture-independent JAVA_HOME (works on arm64 and amd64).
+    && ln -s "$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")" /opt/java
 
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64
+ENV JAVA_HOME=/opt/java
 ENV PYTHONPATH=/opt/airflow
 
 USER airflow

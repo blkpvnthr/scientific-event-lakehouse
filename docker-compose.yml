@@ -20,7 +20,7 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
       PYTHONPATH: /opt/airflow
-      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-arm64
+      JAVA_HOME: /opt/java
       SPARK_LOCAL_IP: 127.0.0.1
     ports:
       - "8080:8080"

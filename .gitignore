@@ -23,3 +23,8 @@ crash.log
 
 # Airflow local venv
 .venv-airflow/
+
+# Coverage artifacts
+.coverage
+coverage.xml
+htmlcov/

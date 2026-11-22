@@ -34,12 +34,16 @@ warm JVM; the first repetition includes JIT warmup).
 | Min duration (warm) | 2.56 s |
 | Mean duration | 4.79 s |
 | Records processed | 281,421 |
-| Output size (Parquet, snappy) | 25.07 MiB |
+| Output size (Parquet, snappy) | ~24.9–25.1 MiB |
 | Raw logical payload | 192.62 MiB (201,979,748 bytes) |
-| Compression ratio vs raw | 7.68x |
+| Compression ratio vs raw | ~7.7x (measured 7.68–7.74 across runs) |
 | Throughput (min duration) | ~110,000 records/s |
 | Duplicate events | 0 |
 | Integrity status | PASS |
+
+The compression ratio varies slightly run-to-run because `repartition` produces
+marginally different per-file Parquet layouts; independently re-verified from
+actual file sizes: 201,979,748 / 26,081,745 bytes = 7.74x.
 
 ## Milestones 4–6 — Silver / Delta / Gold (full dataset)
 
