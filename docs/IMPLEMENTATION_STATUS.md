@@ -12,17 +12,18 @@ Last updated: 2026-11-22
 - PySpark 3.5.3 + delta-spark 3.2.1 → **planned**, pinned in `requirements-spark.txt`
 
 ## Baseline (verified, do not regress)
-- 91 tests passing · ruff clean · format clean
+- **104 tests passing** (91 original + 13 Spark/Bronze) · ruff clean · format clean
 - Raw archive: 347 files, 281,421 records, 0 dupes, 122 windows, 192.62 MiB
 - Historical run id: `3d8d9a251f33489e807356890c692789`
+- Bronze Parquet: 281,421 records / 0 dupes / 347 files reconciled, 25.07 MiB, PASS
 
 ## Milestone status
 
 | # | Milestone | Branch | State |
 |---|---|---|---|
 | 0 | Repo & environment audit | main | ✅ done — plan + status written |
-| 3 | PySpark Bronze (Parquet) | feat/pyspark-bronze | 🚧 in progress |
-| 4 | Silver normalization + quality | feat/silver-processing | ⬜ todo |
+| 3 | PySpark Bronze (Parquet) | feat/pyspark-bronze | ✅ done — 104 tests, acceptance verified |
+| 4 | Silver normalization + quality | feat/silver-processing | 🚧 next |
 | 5 | Delta Lake + versioning | feat/delta-lake-versioning | ⬜ todo |
 | 6 | Gold analytics | feat/gold-analytics | ⬜ todo |
 | 7 | AWS S3 integration | feat/aws-s3-storage | ⬜ todo |
@@ -37,8 +38,19 @@ Last updated: 2026-11-22
 - Spark/Delta deps isolated in `requirements-spark.txt` to keep core install lean.
 - Bronze partitioning: by `event_year` (low cardinality, 2015–2024) — never by event id.
 
+## Milestone 3 — delivered artifacts
+- `src/config/settings.py` — centralized, env-overridable paths/Spark config.
+- `src/spark/session.py` — SparkSession factory (UTC, Delta-ready).
+- `src/schemas/usgs.py` — explicit USGS GeoJSON PySpark schema.
+- `src/bronze/build_bronze.py` — manifest discovery, checksum gate, distributed
+  parse/explode/extract, provenance join, reconciliation, idempotent overwrite.
+- `scripts/benchmark_bronze.py`, `Makefile`, `requirements-spark.txt`.
+- Docs: `data_dictionary/EARTHQUAKE_SCHEMA.md`, `BENCHMARKS.md`; README M3 section + diagram.
+- Tests: `tests/test_bronze.py`, `tests/test_spark_bronze_support.py`, `tests/conftest.py`.
+
 ## Resume notes
-Next action: implement Milestone 3 on `feat/pyspark-bronze` — Spark session
-factory, explicit USGS schemas, manifest-driven Bronze builder with checksum
-verification + reconciliation to 281,421, Parquet output under
-`data/warehouse/bronze/`, idempotent re-run, tests, measured benchmarks.
+Next action: implement Milestone 4 on `feat/silver-processing` — canonical
+event model from Bronze Parquet, normalization, configurable data-quality rule
+engine (`src/quality/`), deterministic revision selection, valid/quarantine
+split reconciling to Bronze input. Reads `data/warehouse/bronze`, writes
+`data/warehouse/silver`.
