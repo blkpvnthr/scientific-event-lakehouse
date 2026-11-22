@@ -78,7 +78,7 @@ Apache Airflow, Docker, and Terraform.
 | 7 | AWS S3 integration | Complete (local + mocked S3) |
 | 8 | Terraform infrastructure | Complete (validated, not applied) |
 | 9 | Apache Airflow orchestration | Complete (DAGs import-verified) |
-| 10 | Monitoring, recovery, and replay | Planned |
+| 10 | Monitoring, recovery, and replay | Complete (locally verified) |
 | 11 | CI/CD and system integration | Planned |
 | 12 | Analytics, documentation, and benchmarks | Planned |
 
@@ -1131,6 +1131,52 @@ flowchart LR
 Apache Airflow conflicts with the Spark dependency pinset, so DAG-import tests run
 in a dedicated venv; in the main `.venv` they skip automatically. See
 [`docs/LOCAL_DEVELOPMENT.md`](docs/LOCAL_DEVELOPMENT.md).
+
+---
+
+## Milestone 10: Observability, Recovery, and Replay
+
+Milestone 10 adds production-oriented operational visibility: structured logging,
+metrics, alerting hooks, recovery helpers, and runbooks.
+
+### Implemented Capabilities
+
+- **Structured logging** (`src/monitoring/logging.py`): one JSON object per event
+  with run ids, stage, duration, record/quarantine/duplicate/retry counts, failure
+  category, and **secret-redacted** error text.
+- **Metrics** (`src/monitoring/metrics.py`): per-stage throughput and durations,
+  quarantine rate, totals; monotonic-clock `StageTimer`.
+- **Alerting** (`src/monitoring/alerts.py`): `Alerter` interface with a local
+  `LoggingAlerter` and an in-memory `CollectingAlerter` for tests.
+- **Recovery** (`src/recovery/`): failed/incomplete-run detection, replayable-run
+  discovery, incomplete-output detection, and watermark-regression protection.
+- **Runbooks** (`docs/runbooks/`): failed run, watermark, quarantine spike.
+
+```mermaid
+flowchart LR
+    R[(Immutable raw archive)] --> D{detect_incomplete_run}
+    D -- incomplete --> RE[Re-ingest interval]
+    D -- complete --> RP[recovery_replay DAG]
+    RP --> B[Idempotent Bronze/Silver/Delta]
+    B --> W{watermark_would_regress?}
+    W -- no --> ADV[Advance watermark]
+    W -- yes --> HOLD[Hold watermark]
+
+    style R fill:#CD7F32,color:#fff
+    style HOLD fill:#B91C1C,color:#fff
+    style ADV fill:#15803D,color:#fff
+```
+
+### Verified Acceptance Results
+
+- 13 monitoring + recovery unit tests pass (redaction, JSON formatting, metrics,
+  incomplete-run detection, watermark protection).
+- Replay is idempotent by construction (verified in Milestone 5): reprocessing an
+  archived run creates no duplicate records.
+- Storage-level immutability is **not** claimed — raw archives are immutable by
+  convention (append-only writers), not by object-lock, until configured.
+
+See [`docs/runbooks/`](docs/runbooks/README.md).
 
 ---
 
