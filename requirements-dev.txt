@@ -1,0 +1,5 @@
+# Development & CI tooling.
+pytest==9.2.0
+pytest-cov==6.0.0
+ruff==0.17.6
+pip-audit==2.9.0
