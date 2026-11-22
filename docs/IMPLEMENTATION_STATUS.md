@@ -30,8 +30,8 @@ Last updated: 2026-11-22
 | 8 | Terraform IaC | feat/terraform-infrastructure | ✅ done — merged to main |
 | 9 | Airflow orchestration | feat/airflow-orchestration | ✅ done — merged to main |
 | 10 | Observability & recovery | feat/observability-recovery | ✅ done — merged to main |
-| 11 | CI/CD & production testing | feat/production-ci | ✅ done — 153 tests, 85% cov, CI authored |
-| 12 | Dashboard, docs, benchmarks | feat/analytics-dashboard | 🚧 next |
+| 11 | CI/CD & production testing | feat/production-ci | ✅ done — merged to main |
+| 12 | Dashboard, docs, benchmarks | feat/analytics-dashboard | ✅ done — 156 tests, reads real Gold |
 
 ## Decisions log
 - Raw `data/bronze/` kept as landing zone; structured outputs → `data/warehouse/{bronze,silver,gold,metadata}/`.
@@ -107,12 +107,18 @@ Last updated: 2026-11-22
 - `requirements-dev.txt`; `docs/TESTING.md` (inventory + scenario map). README M11.
 - 153 tests, 85% coverage.
 
-## Resume notes
-Next action (final): Milestone 12 on `feat/analytics-dashboard` — Streamlit
-dashboard consuming real Gold datasets (no hardcoded numbers), with filters;
-measured benchmarks doc already covers Bronze; add remaining architecture docs
-(`SYSTEM_ARCHITECTURE.md`, `PIPELINE_ARCHITECTURE.md`), `PROJECT_WALKTHROUGH.md`,
-`INTERVIEW_PREPARATION.md`. Then final engineering report. Consider v1.0.0 tag
-only with user authorization (do not push/tag automatically).
-Tooling: OpenJDK 17, Spark 3.5.3, delta-spark 3.2.1, boto3, moto, OpenTofu 1.13.9,
-apache-airflow 2.10.5 (.venv-airflow), pytest-cov.
+## Milestone 12 — delivered artifacts
+- `dashboard/data.py` (+ `__init__.py`), `dashboard/app.py` — Streamlit over real Gold.
+- `requirements-dashboard.txt`; Makefile `dashboard` target.
+- Docs: `architecture/SYSTEM_ARCHITECTURE.md`, `architecture/PIPELINE_ARCHITECTURE.md`,
+  `PROJECT_WALKTHROUGH.md`, `INTERVIEW_PREPARATION.md`; BENCHMARKS Silver/Delta/Gold.
+- Tests: `tests/test_dashboard.py`. README M12.
+
+## ALL MILESTONES COMPLETE (local reference implementation)
+- 156 tests passing, 1 skipped (Airflow DAG test runs in `.venv-airflow`), 85% cov.
+- Full pipeline verified on the real 281,421-record dataset end to end.
+- Nothing pushed to remote; no releases/tags created; no AWS resources applied.
+- Remaining (require authorization): git push, GitHub release/tag (v0.3.0..v1.0.0),
+  running GitHub Actions on push, `terraform apply`, live AWS deployment.
+- Tooling: OpenJDK 17, Spark 3.5.3, delta-spark 3.2.1, boto3, moto, OpenTofu 1.13.9,
+  apache-airflow 2.10.5 (.venv-airflow), streamlit 1.67, pytest-cov.

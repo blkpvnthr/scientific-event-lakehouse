@@ -65,5 +65,8 @@ terraform-validate: ## Validate Terraform/OpenTofu infrastructure (no apply)
 	cd infrastructure/terraform && tofu fmt -check -recursive .
 	cd infrastructure/terraform/environments/dev && tofu init -backend=false && tofu validate
 
+dashboard: ## Launch the Streamlit analytics dashboard (reads real Gold data)
+	$(PYTHON) -m streamlit run dashboard/app.py
+
 clean-warehouse: ## Remove structured warehouse outputs (keeps raw archive)
 	rm -rf data/warehouse

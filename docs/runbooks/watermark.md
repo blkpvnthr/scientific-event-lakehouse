@@ -13,6 +13,7 @@ out-of-order/replay run must not move it backwards.
 ## Diagnose
 ```python
 from src.recovery import watermark_would_regress
+
 watermark_would_regress(current, incoming)  # True -> correctly blocked
 ```
 - Check whether the Delta merge stage actually succeeded (logs + Delta history).
