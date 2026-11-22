@@ -39,3 +39,16 @@ def test_dags_have_retries_and_timeouts():
         for task in dag.tasks:
             assert task.retries >= 1
             assert task.execution_timeout is not None
+
+
+def test_quality_gate_precedes_delta_merge():
+    """Watermark protection: the quality gate must run before the Delta merge
+    (which advances the watermark) in every DAG that has both."""
+    dagbag = DagBag(dag_folder=str(DAGS_DIR), include_examples=False)
+    for dag_id in ("historical_processing", "incremental_ingestion"):
+        dag = dagbag.dags[dag_id]
+        quality = dag.get_task("quality_gate")
+        merge = dag.get_task("merge_delta")
+        # merge_delta is downstream of quality_gate (transitively).
+        assert "merge_delta" in quality.get_flat_relative_ids(upstream=False)
+        assert "quality_gate" in merge.get_flat_relative_ids(upstream=True)
