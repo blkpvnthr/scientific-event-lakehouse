@@ -7,3 +7,8 @@ __pycache__/
 .ruff_cache/
 data/
 logs/
+data/bronze/
+data/silver/
+data/gold/
+data/manifests/
+data/profiles/

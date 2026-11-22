@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -16,7 +16,7 @@ def ingest(start_date: str, end_date: str) -> Path:
         limit=1000,
     )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     partition = BRONZE_PATH / (f"ingestion_date={now:%Y-%m-%d}")
 
