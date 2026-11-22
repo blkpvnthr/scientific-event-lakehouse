@@ -72,7 +72,7 @@ Apache Airflow, Docker, and Terraform.
 | 1 | Initial USGS API ingestion | Complete |
 | 2 | Historical ingestion, archival, and profiling | Complete |
 | 3 | Distributed PySpark Bronze processing | Complete (locally verified) |
-| 4 | Silver normalization and data quality | Planned |
+| 4 | Silver normalization and data quality | Complete (locally verified) |
 | 5 | Delta Lake versioning and schema evolution | Planned |
 | 6 | Gold analytical transformations | Planned |
 | 7 | AWS S3 integration | Planned |
@@ -794,6 +794,73 @@ Measured on the historical run `3d8d9a251f33489e807356890c692789`
 Full methodology and per-repetition figures are in
 [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md); the Bronze schema is documented
 in [`docs/data_dictionary/EARTHQUAKE_SCHEMA.md`](docs/data_dictionary/EARTHQUAKE_SCHEMA.md).
+
+---
+
+## Milestone 4: Silver Normalization and Data Quality
+
+Milestone 4 transforms structured Bronze into a canonical scientific event
+model with a configurable, independently-testable data-quality framework. It
+standardizes categorical values (while retaining originals), validates records
+against integrity and scientific-plausibility rules, deterministically selects
+the current revision of each event, and separates valid from quarantined
+records — without discarding scientifically legitimate values such as negative
+depths.
+
+### Implemented Capabilities
+
+- Canonical event model with normalized categorical attributes.
+- Deterministic content fingerprint per observation.
+- Configurable quality rules (integrity, plausibility, completeness).
+- Fatal vs warning severities (quarantine vs observe-only).
+- Deterministic revision selection (latest `updated_time`, fingerprint tiebreak).
+- Current-state and observed-revision datasets.
+- Quarantine with full provenance and failed-rule capture.
+- Reproducible per-rule data-quality results.
+- Valid + quarantined + superseded reconciliation to Bronze input.
+
+### Silver Normalization Architecture
+
+```mermaid
+flowchart LR
+    A[(Bronze Parquet)] --> B[Normalize Categoricals]
+    B --> C[Content Fingerprint]
+    C --> D[Evaluate Quality Rules]
+    D --> E{Fatal Rule Failed?}
+    E -- yes --> F[(Quarantined Events)]
+    E -- no --> G[Deterministic Revision Selection]
+    G --> H[(Current Events)]
+    G --> I[(Event Revisions)]
+    D --> J[(Data Quality Results)]
+    H --> K[Reconciliation: valid + quarantined = input]
+    F --> K
+    I --> K
+
+    style A fill:#2563EB,color:#fff
+    style H fill:#C0C0C0,color:#000
+    style I fill:#C0C0C0,color:#000
+    style F fill:#B91C1C,color:#fff
+    style J fill:#15803D,color:#fff
+```
+
+### Verified Acceptance Results
+
+Measured on run `3d8d9a251f33489e807356890c692789`:
+
+| Metric | Result |
+|---|---:|
+| Bronze input records | 281,421 |
+| Valid records | 281,421 |
+| Quarantined records | 0 |
+| Current events | 281,421 |
+| Superseded revisions | 0 |
+| Fatal quality failures | 0 |
+| Completeness warnings | 1 (missing `magType`) |
+| Status normalization | `REVIEWED`+`reviewed` → 279,381 `reviewed` |
+| Reconciliation | PASS |
+
+See [`docs/DATA_QUALITY.md`](docs/DATA_QUALITY.md) for the rule catalog and
+scientific justification of thresholds.
 
 ---
 
