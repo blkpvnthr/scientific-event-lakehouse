@@ -1,49 +1,117 @@
 # Scientific Event Data Lakehouse
 
+[![Release](https://img.shields.io/badge/release-v1.0.0-15803D)](https://github.com/blkpvnthr/scientific-event-lakehouse/releases/tag/v1.0.0)
+![Milestones](https://img.shields.io/badge/milestones-12%2F12-15803D)
+[![CI](https://github.com/blkpvnthr/scientific-event-lakehouse/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/blkpvnthr/scientific-event-lakehouse/actions/workflows/ci.yml)
+![Coverage](https://img.shields.io/badge/coverage-86%25-2563EB)
+
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![Apache Spark](https://img.shields.io/badge/Apache%20Spark-3.5.3-E25A1C?logo=apachespark&logoColor=white)
+![Delta Lake](https://img.shields.io/badge/Delta%20Lake-3.2.1-00ADD4)
+![Apache Airflow](https://img.shields.io/badge/Apache%20Airflow-2.10.5-017CEE?logo=apacheairflow&logoColor=white)
+![Parquet](https://img.shields.io/badge/Apache%20Parquet-columnar-50ABF1)
+![AWS S3](https://img.shields.io/badge/AWS%20S3-local%20%2B%20mocked-FF9900?logo=amazons3&logoColor=white)
+![OpenTofu](https://img.shields.io/badge/OpenTofu%2FTerraform-validated-7B42BC?logo=opentofu&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-image%20builds-2496ED?logo=docker&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI-2088FF?logo=githubactions&logoColor=white)
 ![Pytest](https://img.shields.io/badge/Testing-Pytest-0A9EDC?logo=pytest&logoColor=white)
 ![Ruff](https://img.shields.io/badge/Code%20Quality-Ruff-261230)
 ![Architecture](https://img.shields.io/badge/Architecture-Medallion-CD7F32)
 ![Source](https://img.shields.io/badge/Data%20Source-USGS-008000)
 ![Records](https://img.shields.io/badge/Records-281%2C421-blue)
-![Historical Coverage](https://img.shields.io/badge/Coverage-2015--2024-blue)
-![Status](https://img.shields.io/badge/Milestone%202-Complete-brightgreen)
+![Coverage Years](https://img.shields.io/badge/Catalog-2015--2024-blue)
 
-An enterprise-oriented scientific data engineering platform for
-ingesting, processing, validating, and analyzing seismic events
-using the [USGS Earthquake Catalog](https://earthquake.usgs.gov/earthquakes/search/).
+A **production-oriented reference implementation** of a scientific data
+engineering platform that ingests, processes, validates, versions, and analyzes
+seismic events from the [USGS Earthquake Catalog](https://earthquake.usgs.gov/earthquakes/search/).
 
-The platform is designed around reproducible ingestion, immutable
-raw archival, data provenance, distributed transformations,
-transactional storage, workflow orchestration, and analytical
-data products.
+**The engineering problem.** Scientific catalogs are revised continuously — events
+are re-estimated, late observations arrive, and records change after first
+publication. Turning this into trustworthy analytics requires immutable raw
+capture, reconciled distributed processing, deterministic revision handling, and
+end-to-end provenance — not just "load and query".
 
-The project progressively implements a Medallion Lakehouse
-architecture using Python, PySpark, Delta Lake, AWS S3,
-Apache Airflow, Docker, and Terraform.
+**What this is.** A complete Medallion Lakehouse over the USGS GeoJSON feed:
+immutable **raw** archive (checksummed) → distributed **Bronze** Parquet (PySpark)
+→ **Silver** canonical model + data quality + quarantine → transactional **Delta**
+current-state and observed-revision tables → **Gold** star schema + 10 analytical
+datasets → Spark SQL + a Streamlit dashboard. It is orchestrated with Airflow,
+abstracted over local/S3 storage, provisioned via validated OpenTofu/Terraform,
+observed with structured logging/metrics/recovery, and gated by GitHub Actions CI.
+
+**Local verification vs cloud deployment.** Everything is implemented and verified
+locally on the real 281,421-event dataset (local-mode Spark, single machine).
+Cloud components (S3 buckets, IAM, managed orchestration) are **authored and
+validated but not deployed** — no live AWS infrastructure is provisioned. Each
+section below labels its verification status explicitly.
+
+---
+
+## Technical Achievements
+
+Independently verified figures (see [`docs/RELEASE_AUDIT.md`](docs/RELEASE_AUDIT.md)
+and [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md)):
+
+| Metric | Result |
+|---|---:|
+| Implementation milestones | 12 / 12 |
+| Historical coverage | 2015-01-01 → 2025-01-01 (exclusive) |
+| Historical event records | 281,421 |
+| Unique event identifiers | 281,421 |
+| Baseline duplicate records | 0 |
+| Archived source files | 347 |
+| Historical extraction windows | 122 |
+| Original payload | 201,979,748 bytes (192.62 MiB) |
+| Structured Bronze Parquet | ~25.1 MiB (**~7.7×** compression) |
+| Gold analytical datasets | 10 |
+| Reusable Spark SQL queries | 10 |
+| Airflow DAGs | 3 |
+| New logical revisions on identical replay | 0 (idempotent) |
+| Automated tests | 158 passing, 1 skipped (+2 in the Airflow env) |
+| Line coverage (`src/`) | 86% |
+| CI jobs (GitHub Actions) | 5, all green |
+
+> Measurements are local-mode Spark on a single machine — **not** distributed
+> cloud-cluster performance.
 
 ---
 
 ## Table of Contents
 
-- [Project Objectives](#project-objectives)
-- [Current Status](#current-status)
-- [Current Architecture](#current-architecture)
-- [Milestone 1](#milestone-1-initial-api-ingestion)
-- [Milestone 2](#milestone-2-historical-ingestion-and-profiling)
-- [Historical Dataset](#historical-dataset)
-- [Performance Benchmarks](#performance-benchmarks)
-- [Bronze Storage and Data Lineage](#bronze-storage-and-data-lineage)
-- [Data Provenance](#data-provenance)
-- [Data Quality and Integrity](#data-quality-and-integrity)
-- [Target Enterprise Lakehouse Architecture](#target-enterprise-lakehouse-architecture)
-- [Technology Stack](#technology-stack)
-- [Repository Structure](#repository-structure)
-- [Getting Started](#getting-started)
-- [Running the Pipeline](#running-the-pipeline)
-- [Automated Testing](#automated-testing)
-- [Development Roadmap](#development-roadmap)
-- [Known Limitations](#known-limitations)
+1. [Project Objectives](#project-objectives)
+2. [Technical Achievements](#technical-achievements)
+3. [Current Status](#current-status)
+4. [Current Architecture](#current-architecture)
+5. [Milestone 1 — Initial API Ingestion](#milestone-1-initial-api-ingestion)
+6. [Milestone 2 — Historical Ingestion and Profiling](#milestone-2-historical-ingestion-and-profiling)
+7. [Historical Dataset](#historical-dataset)
+8. [Performance Benchmarks](#performance-benchmarks)
+9. [Bronze Storage and Data Lineage](#bronze-storage-and-data-lineage)
+10. [Data Provenance](#data-provenance)
+11. [Data Quality and Integrity](#data-quality-and-integrity)
+12. [Milestone 3 — Distributed PySpark Bronze Processing](#milestone-3-distributed-pyspark-bronze-processing)
+13. [Milestone 4 — Silver Normalization and Data Quality](#milestone-4-silver-normalization-and-data-quality)
+14. [Milestone 5 — Delta Lake, Versioning, and Schema Evolution](#milestone-5-delta-lake-versioning-and-schema-evolution)
+15. [Milestone 6 — Gold Analytical Data Products](#milestone-6-gold-analytical-data-products)
+16. [Milestone 7 — AWS S3 Integration](#milestone-7-aws-s3-integration)
+17. [Milestone 8 — Terraform Infrastructure](#milestone-8-terraform-infrastructure)
+18. [Milestone 9 — Apache Airflow Orchestration](#milestone-9-apache-airflow-orchestration)
+19. [Milestone 10 — Observability, Recovery, and Replay](#milestone-10-observability-recovery-and-replay)
+20. [Milestone 11 — CI/CD and Production Testing](#milestone-11-cicd-and-production-testing)
+21. [Milestone 12 — Analytics Dashboard, Documentation, and Benchmarks](#milestone-12-analytics-dashboard-documentation-and-benchmarks)
+22. [Complete Lakehouse Architecture](#complete-lakehouse-architecture)
+23. [Technology Stack](#technology-stack)
+24. [Repository Structure](#repository-structure)
+25. [Getting Started](#getting-started)
+26. [Running the Pipeline](#running-the-pipeline)
+27. [Analytics Dashboard](#analytics-dashboard)
+28. [Automated Testing](#automated-testing)
+29. [Development Roadmap](#development-roadmap)
+30. [Completed End-to-End Data Flow](#completed-end-to-end-data-flow)
+31. [Known Limitations](#known-limitations)
+32. [Releases](#releases)
+33. [Technical Documentation](#technical-documentation)
+34. [Data Source](#data-source)
 
 ---
 
@@ -86,42 +154,95 @@ Apache Airflow, Docker, and Terraform.
 
 ## Current Architecture
 
-The currently implemented architecture provides historical
-extraction, raw archival, ingestion provenance, independent
-profiling, and automated validation.
+The v1.0.0 architecture implements the complete Medallion Lakehouse: immutable
+raw capture, distributed Bronze processing, Silver normalization + data quality,
+transactional Delta current-state and observed-revision tables, Gold analytical
+products, and dashboard/SQL consumption. Data dependencies below reflect the
+actual implementation.
 
 ```mermaid
-flowchart LR
-    A[USGS Earthquake API] --> B[Python API Client]
-    B --> C[Historical Backfill]
-    C --> D[GeoJSON Validation]
+flowchart TD
+    USGS["USGS Earthquake Catalog"]
 
-    D --> E[SHA-256 Checksum]
-    D --> F[Atomic Archival]
+    subgraph INGEST["Data Acquisition"]
+        API["Python API Client"]
+        HIST["Historical Backfill"]
+        INC["Incremental Ingestion"]
+        VALID["GeoJSON Validation"]
+    end
 
-    F --> G[(Bronze Raw JSON)]
-    F --> H[Page Provenance]
-    E --> H
+    subgraph BRONZE["Bronze Layer"]
+        RAW[("Raw GeoJSON Archive")]
+        MANIFEST["Ingestion Manifests"]
+        INTEGRITY["SHA-256 Verification"]
+        PROFILE["Data Profiling"]
+        SPARK["PySpark Processing"]
+        PARQUET[("Structured Bronze Parquet")]
+    end
 
-    H --> I[Window Manifests]
-    I --> J[Run Completion Marker]
+    subgraph SILVER["Silver Layer"]
+        NORMALIZE["Scientific Normalization"]
+        QUALITY["Data Quality Rules"]
+        QUARANTINE[("Quarantined Records")]
+        MERGE["Delta MERGE"]
+        CURRENT[("Delta Current Events")]
+        REVISIONS[("Delta Observed Revisions")]
+    end
 
-    G --> K[Bronze Profiler]
-    I --> K
-    J --> K
+    subgraph GOLD["Gold Layer"]
+        FACT[("fact_earthquake_event")]
+        DIM[("Conformed Dimensions")]
+        AGG[("Analytical Parquet Datasets")]
+    end
 
-    K --> L[Integrity and Quality Reports]
+    subgraph CONSUMPTION["Analytics"]
+        SQL["Spark SQL"]
+        DASH["Streamlit Dashboard"]
+    end
 
-    M[Pytest] -.-> B
-    M -.-> C
-    M -.-> D
-    M -.-> K
+    USGS --> API
+    API --> HIST
+    API --> INC
+    HIST --> VALID
+    INC --> VALID
 
-    style A fill:#1E40AF,color:#fff
-    style G fill:#CD7F32,color:#fff
-    style K fill:#2563EB,color:#fff
-    style L fill:#15803D,color:#fff
+    VALID --> RAW
+    VALID --> MANIFEST
+    RAW --> INTEGRITY
+    MANIFEST --> INTEGRITY
+    INTEGRITY --> PROFILE
+    INTEGRITY --> SPARK
+    SPARK --> PARQUET
+
+    PARQUET --> NORMALIZE
+    NORMALIZE --> QUALITY
+    QUALITY -->|valid| MERGE
+    QUALITY -->|fatal rule failure| QUARANTINE
+    MERGE --> CURRENT
+    MERGE --> REVISIONS
+
+    CURRENT --> FACT
+    CURRENT --> DIM
+    FACT --> AGG
+    DIM --> AGG
+    AGG --> SQL
+    AGG --> DASH
+
+    style RAW fill:#CD7F32,color:#fff
+    style PARQUET fill:#CD7F32,color:#fff
+    style CURRENT fill:#64748B,color:#fff
+    style REVISIONS fill:#64748B,color:#fff
+    style QUARANTINE fill:#B91C1C,color:#fff
+    style FACT fill:#D4AF37,color:#000
+    style DIM fill:#D4AF37,color:#000
+    style AGG fill:#D4AF37,color:#000
+    style DASH fill:#15803D,color:#fff
+    style API fill:#2563EB,color:#fff
 ```
+
+Orchestration (Airflow), storage abstraction (local/S3), infrastructure
+(OpenTofu/Terraform), observability/recovery, and CI/CD wrap this pipeline and are
+detailed in the milestone sections below.
 
 ---
 
@@ -1094,14 +1215,14 @@ unit-testable.
 
 | DAG | Purpose |
 |---|---|
-| `historical_processing` | validate → Bronze → Silver → Delta → Gold → quality gate → report |
-| `incremental_ingestion` | watermark → interval → extract → … → merge → refresh Gold → quality |
+| `historical_processing` | validate → Bronze → Silver → quality gate → Delta → Gold → report |
+| `incremental_ingestion` | watermark → interval → extract → … → Silver → quality gate → merge → refresh Gold |
 | `recovery_replay` | validate manifests → reprocess archived run → reconcile → report |
 
 ```mermaid
 flowchart LR
     V[validate_run] --> B[process_bronze] --> S[normalize_silver]
-    S --> D[merge_delta] --> G[build_gold] --> Q[quality_gate] --> R[publish_report]
+    S --> Q[quality_gate] --> D[merge_delta] --> G[build_gold] --> R[publish_report]
 
     style V fill:#6B7280,color:#fff
     style D fill:#2563EB,color:#fff
@@ -1114,8 +1235,10 @@ flowchart LR
 - Three DAGs with task retries, execution timeouts, and explicit dependencies.
 - Idempotent tasks (checksum-verified Bronze, fingerprint-keyed Delta) → retries
   never duplicate records.
-- Watermark advanced only by the Delta step on success → failed runs don't
-  advance it; `max_active_runs=1` serializes incremental runs.
+- The quality gate runs **before** the Delta merge, and the watermark is advanced
+  only by that merge on success → a fatal quality failure or any upstream failure
+  halts the run before the watermark moves; `max_active_runs=1` serializes
+  incremental runs.
 - Overlapping incremental re-query window for revised events; documented USGS
   query semantics; no large data in XCom (only small summary dicts).
 - Docker image (Java 17 + Spark/Delta) + `docker-compose.yml` (standalone).
@@ -1267,17 +1390,23 @@ descriptive summaries of a magnitude-filtered catalog, **not** prediction.
 
 ---
 
-## Target Enterprise Lakehouse Architecture
+## Complete Lakehouse Architecture
 
-The target platform implements the Medallion architecture
-pattern, separating raw source data, validated scientific
-records, and analytical data products.
+The platform implements the Medallion architecture, separating immutable raw
+source data, validated scientific records, and analytical data products. The
+diagram below is the **implemented** end-to-end system; components are labelled by
+verification status in the table that follows.
 
-The following diagram represents the planned end-state
-architecture following completion of all project milestones.
+Verification status of each environment:
 
-AWS S3, Spark, Delta Lake, Airflow, and infrastructure
-automation are planned components and are not yet deployed.
+| Status | Components |
+|---|---|
+| **Implemented & locally verified** | Historical + incremental ingestion, raw archival, manifest verification, PySpark Bronze, Bronze Parquet, Silver normalization + quality, Delta current-state + observed revisions, Gold Parquet datasets, Spark SQL, Streamlit, monitoring, recovery/replay |
+| **Implemented & infrastructure-validated** | S3 storage adapter + mocked S3 tests, OpenTofu/Terraform modules, IAM policies, Airflow DAGs, Docker images, GitHub Actions |
+| **Not deployed** | Live AWS S3 buckets, provisioned IAM, multi-node Spark clusters, managed production orchestration, production-scale cloud monitoring |
+
+Raw storage uses a local filesystem by default, with an S3 backend available via
+the storage abstraction. Gold outputs are **Parquet** datasets.
 
 ```mermaid
 flowchart TD
@@ -1294,7 +1423,7 @@ flowchart TD
     end
 
     subgraph BRONZE["03 - Bronze Layer"]
-        G[("AWS S3<br/>Raw GeoJSON")]
+        G[("Raw GeoJSON Archive<br/>local / S3 backend")]
         H[Ingestion Manifests]
         I[SHA-256 Integrity]
         J[Data Profiling]
@@ -1316,7 +1445,7 @@ flowchart TD
         T[Geographic Aggregations]
         U[Magnitude Analysis]
         V[Seismic Activity Metrics]
-        W[(Gold Delta Tables)]
+        W[(Gold Parquet Datasets)]
     end
 
     subgraph CONSUMPTION["06 - Data Consumption"]
@@ -1419,7 +1548,7 @@ flowchart LR
 
     B --> C[("SILVER<br/>Validated Scientific Data")]
 
-    C --> D[("GOLD<br/>Analytical Data Products")]
+    C --> D[("GOLD<br/>Analytical Parquet Products")]
 
     D --> E[Research and Analytics]
 
@@ -1430,42 +1559,40 @@ flowchart LR
     style E fill:#15803D,color:#fff
 ```
 
-| Layer | Responsibility | Status |
-|---|---|---|
-| Bronze | Original source payloads and provenance | Implemented locally |
-| Silver | Validated and normalized scientific events | Planned |
-| Gold | Aggregated analytical datasets | Planned |
+| Layer | Responsibility | Storage | Status |
+|---|---|---|---|
+| Raw | Original source payloads + provenance | GeoJSON (local/S3) | Implemented & verified |
+| Bronze | Structured, schema-enforced events | Parquet | Implemented & verified |
+| Silver | Validated/normalized events + revisions | Delta Lake | Implemented & verified |
+| Gold | Aggregated analytical datasets | Parquet | Implemented & verified |
 
 ---
 
 ## Technology Stack
 
-### Implemented Technologies
+All components are implemented. The **Status** column records verification depth:
+*verified* (exercised locally on real data), *validated* (config/structure checks
+or mocked services), or *runs in CI*.
 
-| Technology | Purpose |
-|---|---|
-| Python 3.11 | Pipeline implementation |
-| Requests | HTTP API connectivity |
-| Pytest | Unit and integration testing |
-| Ruff | Linting and formatting |
-| JSON / GeoJSON | Source payload storage |
-| SHA-256 | Payload integrity verification |
-| Git | Source version control |
-| GitHub | Repository hosting |
-
-### Planned Technologies
-
-| Technology | Purpose |
-|---|---|
-| Apache Spark | Distributed data processing |
-| PySpark | Python-based Spark transformations |
-| Apache Parquet | Columnar data storage |
-| Delta Lake | Transactional lakehouse tables |
-| AWS S3 | Cloud object storage |
-| Apache Airflow | Workflow orchestration |
-| Docker | Reproducible execution environments |
-| Terraform | Infrastructure as code |
-| GitHub Actions | CI/CD automation |
+| Category | Technology | Version | Status |
+|---|---|---|---|
+| Programming | Python | 3.11 | verified |
+| Scientific data source | USGS Earthquake Catalog | — | verified |
+| API connectivity | Requests | 2.34 | verified |
+| Raw data format | GeoJSON | — | verified |
+| Distributed processing | Apache Spark / PySpark | 3.5.3 | verified (local mode) |
+| Columnar storage | Apache Parquet | — | verified |
+| Transactional storage | Delta Lake | 3.2.1 | verified |
+| Analytical queries | Spark SQL | 3.5.3 | verified |
+| Object storage | Local filesystem / AWS S3 adapter | boto3 1.44 | local verified; S3 mocked (moto) |
+| Workflow orchestration | Apache Airflow | 2.10.5 | DAG imports verified; runs in CI |
+| Infrastructure as Code | OpenTofu / Terraform | 1.13.9 | validated (`fmt`/`init`/`validate`); not applied |
+| Containerization | Docker | — | image builds & runs; verified in CI |
+| CI/CD | GitHub Actions | — | 5 jobs green |
+| Data visualization | Streamlit | 1.67 | verified against real Gold |
+| Testing | Pytest | 9.2 | 158 passing / 1 skipped |
+| Code quality | Ruff | 0.17 | clean |
+| Integrity verification | SHA-256 | — | verified |
 
 ---
 
@@ -1474,39 +1601,41 @@ flowchart LR
 ```text
 scientific-event-lakehouse/
 ├── src/
-│   ├── ingestion/
-│   │   ├── archive.py
-│   │   ├── backfill.py
-│   │   ├── date_windows.py
-│   │   ├── ingest.py
-│   │   ├── manifest.py
-│   │   ├── usgs_client.py
-│   │   └── validation.py
-│   └── profiling/
-│       ├── __init__.py
-│       └── profile_bronze.py
-├── tests/
-│   ├── test_archive.py
-│   ├── test_backfill.py
-│   ├── test_date_windows.py
-│   ├── test_manifest.py
-│   ├── test_profile_bronze.py
-│   ├── test_profile_integration.py
-│   ├── test_usgs_client.py
-│   └── test_validation.py
-├── data/
-│   ├── bronze/
-│   ├── manifests/
-│   ├── profiles/
-│   ├── silver/
-│   └── gold/
-├── .gitignore
-├── requirements.txt
+│   ├── ingestion/          # USGS client, windows, validation, archival, manifests, backfill
+│   ├── profiling/          # Bronze integrity + statistical profiling
+│   ├── config/             # centralized settings (paths, Spark, storage)
+│   ├── spark/              # SparkSession factory (Delta-ready)
+│   ├── schemas/            # explicit USGS GeoJSON PySpark schema
+│   ├── bronze/             # distributed Bronze builder
+│   ├── silver/             # canonical model + revision selection
+│   ├── quality/            # configurable data-quality rule engine
+│   ├── delta_lake/         # Delta MERGE, metadata, watermarks
+│   ├── gold/               # star schema + datasets + SQL runner
+│   ├── storage/            # local / S3 storage abstraction
+│   ├── orchestration/      # Airflow-agnostic task callables
+│   ├── monitoring/         # structured logging, metrics, alerts
+│   └── recovery/           # failed-run detection, replay, watermark guard
+├── airflow/
+│   ├── dags/               # historical, incremental, recovery/replay DAGs
+│   └── Dockerfile          # Airflow image (Java 17 + Spark/Delta)
+├── infrastructure/terraform/
+│   ├── modules/{s3_bucket,iam}/
+│   └── environments/dev/
+├── sql/analytics/          # 10 reusable Spark SQL queries
+├── dashboard/              # Streamlit app + data-access layer
+├── scripts/                # benchmark_bronze.py
+├── tests/                  # 19 test modules (unit + Spark + Delta + e2e)
+├── docs/                   # architecture, data dictionary, benchmarks, runbooks, audits
+├── .github/workflows/      # ci.yml, benchmark.yml
+├── Dockerfile              # pipeline runtime image
+├── docker-compose.yml      # local Airflow
+├── Makefile
+├── requirements*.txt       # core, spark, aws, dashboard, dev
 └── README.md
 ```
 
-Generated data, manifests, and profiling reports are
-excluded from version control.
+Generated data, manifests, profiling reports, virtualenvs, Terraform state, and
+coverage artifacts are excluded from version control (`.gitignore`).
 
 ---
 
@@ -1774,189 +1903,194 @@ git diff --check
 
 ## Development Roadmap
 
-The project follows a progressive implementation
-strategy, beginning with reliable local ingestion
-before introducing distributed processing, cloud
-infrastructure, orchestration, and production controls.
+All twelve milestones are complete. The roadmap below shows the delivered
+sequence; green = implemented & locally verified, blue = implemented &
+infrastructure-validated (not deployed), gray = optional future work.
 
 ```mermaid
 flowchart TD
-    subgraph PHASE1["Phase I - Data Acquisition"]
-        M1["Milestone 1<br/>Initial API Ingestion"]
-        M2["Milestone 2<br/>Historical Ingestion and Profiling"]
+    subgraph P1["Phase I - Data Acquisition"]
+        M1["1. Initial API Ingestion"]
+        M2["2. Historical Ingestion"]
     end
 
-    subgraph PHASE2["Phase II - Data Processing"]
-        M3["Milestone 3<br/>Distributed PySpark Processing"]
-        M4["Milestone 4<br/>Silver Normalization"]
-        M5["Milestone 5<br/>Delta Lake Versioning"]
-        M6["Milestone 6<br/>Gold Analytical Tables"]
+    subgraph P2["Phase II - Lakehouse Processing"]
+        M3["3. PySpark Bronze"]
+        M4["4. Silver Quality"]
+        M5["5. Delta Lake"]
+        M6["6. Gold Analytics"]
     end
 
-    subgraph PHASE3["Phase III - Cloud Infrastructure"]
-        M7["Milestone 7<br/>AWS S3 Integration"]
-        M8["Milestone 8<br/>Terraform Infrastructure"]
-        M9["Milestone 9<br/>Airflow Orchestration"]
+    subgraph P3["Phase III - Platform Infrastructure"]
+        M7["7. S3 Integration"]
+        M8["8. Infrastructure as Code"]
+        M9["9. Airflow"]
     end
 
-    subgraph PHASE4["Phase IV - Production Engineering"]
-        M10["Milestone 10<br/>Monitoring and Recovery"]
-        M11["Milestone 11<br/>CI/CD and Integration"]
-        M12["Milestone 12<br/>Analytics and Benchmarks"]
+    subgraph P4["Phase IV - Operational Engineering"]
+        M10["10. Monitoring and Recovery"]
+        M11["11. CI/CD and Testing"]
+        M12["12. Dashboard and Benchmarks"]
     end
 
-    M1 --> M2
-    M2 --> M3
-    M3 --> M4
-    M4 --> M5
-    M5 --> M6
-    M6 --> M7
-    M7 --> M8
-    M8 --> M9
-    M9 --> M10
-    M10 --> M11
-    M11 --> M12
+    M1 --> M2 --> M3 --> M4
+    M4 --> M5 --> M6 --> M7
+    M7 --> M8 --> M9 --> M10
+    M10 --> M11 --> M12
 
-    style M1 fill:#15803D,color:#fff
-    style M2 fill:#2563EB,color:#fff
-    style M3 fill:#475569,color:#fff
-    style M4 fill:#475569,color:#fff
-    style M5 fill:#475569,color:#fff
-    style M6 fill:#475569,color:#fff
-    style M7 fill:#475569,color:#fff
-    style M8 fill:#475569,color:#fff
-    style M9 fill:#475569,color:#fff
-    style M10 fill:#475569,color:#fff
-    style M11 fill:#475569,color:#fff
-    style M12 fill:#475569,color:#fff
+    M12 --> RELEASE["v1.0.0 Stable Release"]
+    RELEASE -.-> CLOUD["Optional Future AWS Deployment"]
+
+    classDef complete fill:#15803D,color:#fff
+    classDef validated fill:#2563EB,color:#fff
+    classDef future fill:#475569,color:#fff
+
+    class M1,M2,M3,M4,M5,M6,M9,M10,M11,M12,RELEASE complete
+    class M7,M8 validated
+    class CLOUD future
 ```
 
-### Phase I: Data Acquisition
+### Delivered (Phases I–IV)
 
-- [x] Implement USGS API connectivity.
-- [x] Implement initial Bronze ingestion.
-- [x] Implement historical extraction windows.
-- [x] Implement pagination and retry handling.
-- [x] Implement atomic archival.
-- [x] Implement SHA-256 checksums.
-- [x] Implement ingestion manifests.
-- [x] Implement historical backfill orchestration.
-- [x] Ingest ten years of historical records.
-- [x] Implement Bronze profiling.
-- [x] Implement profiler integration tests.
-- [x] Confirm final 91-test regression suite.
-- [x] Confirm ten-year global integrity results.
-- [ ] Publish Milestone 2 release.
+- [x] USGS API connectivity, pagination, retry/backoff, GeoJSON validation.
+- [x] Atomic archival, SHA-256 checksums, manifests, ten-year backfill, profiling.
+- [x] Distributed PySpark Bronze with explicit schemas and reconciliation.
+- [x] Silver normalization, data-quality rules, quarantine, revision selection.
+- [x] Delta Lake current-state + observed revisions, schema evolution, time travel.
+- [x] Gold star schema, 10 datasets, 10 reusable Spark SQL queries.
+- [x] Local/S3 storage abstraction (mocked S3 tests).
+- [x] OpenTofu/Terraform modules (validated), Docker images, Airflow DAGs.
+- [x] Watermark management (advance-only, quality-gated).
+- [x] Monitoring/metrics/alerts, recovery + replay, runbooks.
+- [x] GitHub Actions CI, synthetic end-to-end test, Streamlit dashboard, benchmarks.
+- [x] Published **v1.0.0** stable release.
 
-### Phase II: Distributed Data Processing
+### Optional future work (requires authorization)
 
-- [ ] Install and configure PySpark.
-- [ ] Define explicit earthquake schemas.
-- [ ] Parse historical Bronze GeoJSON files.
-- [ ] Normalize nested source records.
-- [ ] Implement distributed quality checks.
-- [ ] Implement event deduplication.
-- [ ] Implement Silver-layer transformations.
-- [ ] Implement Delta Lake tables.
-- [ ] Implement observed source revision history.
-- [ ] Implement schema evolution.
-- [ ] Implement Gold analytical aggregations.
-
-### Phase III: Cloud Infrastructure
-
-- [ ] Provision AWS S3 storage.
-- [ ] Implement cloud storage integration.
-- [ ] Define infrastructure with Terraform.
-- [ ] Containerize execution environments.
-- [ ] Configure Apache Airflow.
-- [ ] Implement historical and incremental DAGs.
-- [ ] Implement watermark management.
-
-### Phase IV: Production Engineering
-
-- [ ] Implement monitoring and alerting.
-- [ ] Implement replay and recovery workflows.
-- [ ] Establish data quality reporting.
-- [ ] Implement GitHub Actions CI/CD.
-- [ ] Implement infrastructure validation.
-- [ ] Establish scalability benchmarks.
-- [ ] Develop analytical dashboards.
+- [ ] Provision live AWS S3 + IAM (`terraform apply`).
+- [ ] Run the pipeline against `s3://` with the `hadoop-aws` JARs.
+- [ ] Deploy managed orchestration (e.g. MWAA) and multi-node Spark.
 
 ---
 
 ## Known Limitations
 
-The current implementation represents a local
-historical ingestion and profiling platform.
+Honest scope boundaries of this reference implementation:
 
-- Historical extraction is sequential.
-- Profiling retains event IDs and numerical measurements
-  in memory.
-- Distributed Spark processing is not yet implemented.
-- Incremental watermark management is not yet implemented.
-- Cloud object storage is not yet configured.
-- Automated orchestration is not yet deployed.
-- Failed runs may require a new ingestion execution.
-- Raw archival prevents application-level overwrites but
-  does not provide storage-enforced immutability.
-- SHA-256 checksums detect payload changes relative to
-  recorded manifests but do not authenticate the source.
-- Matching source counts do not guarantee snapshot
-  consistency against a mutable USGS catalog.
-- Historical extraction does not reconstruct unavailable
-  prior revisions of source events.
-- Bronze integrity verification does not establish complete
-  scientific validity.
-
-These limitations will be addressed progressively
-through subsequent project milestones.
+- **Local-mode Spark** on a single machine — measured figures are not
+  distributed-cluster performance.
+- **Single-writer Delta** — no concurrent multi-writer guarantees.
+- Raw archival prevents application-level overwrites but does **not** provide
+  storage-enforced immutability (no object-lock configured).
+- SHA-256 detects payload changes relative to recorded manifests but does not
+  authenticate the source.
+- Matching source counts do not guarantee snapshot consistency against the
+  mutable USGS catalog; only **observed** revisions are reconstructed, never
+  unobserved prior source states.
+- Data-quality verification enforces integrity and plausibility but does not
+  establish complete scientific validity.
+- Cloud infrastructure is **validated but not deployed**; no live AWS resources
+  exist.
 
 ---
 
-## Upcoming Milestone
+## Completed End-to-End Data Flow
 
-### Milestone 3: Distributed PySpark Bronze Processing
-
-The next milestone introduces Apache Spark as the
-distributed processing engine for the scientific
-lakehouse.
+The verified pipeline processes the 281,421-record archive through every layer
+to analytics and supports recovery/replay. Each stage is implemented and
+reconciled (see the milestone sections above).
 
 ```mermaid
 flowchart LR
-    A[("Bronze Raw GeoJSON<br/>281,421 Ingested Records")]
-
-    A --> B[Explicit Spark Schema]
-
-    B --> C[PySpark DataFrame]
-
-    C --> D[Explode GeoJSON Features]
-
-    D --> E[Normalize Nested Attributes]
-
-    E --> F[Distributed Validation]
-
-    F --> G[(Structured Bronze Parquet)]
-
-    G --> H[Future Silver Processing]
+    A[("Raw GeoJSON Archive<br/>347 files · 281,421 records")]
+    A --> V["Manifest + SHA-256 Verification"]
+    V --> B["PySpark Feature Extraction"]
+    B --> C[("Structured Bronze Parquet")]
+    C --> D["Silver Normalization + Quality"]
+    D --> E[("Delta Current + Observed Revisions")]
+    D --> Q[("Quarantine")]
+    E --> F[("Gold Parquet Datasets")]
+    F --> G["Spark SQL + Streamlit Dashboard"]
+    E -. replay .-> R["Recovery / Replay DAG"]
+    R -. idempotent .-> B
 
     style A fill:#CD7F32,color:#fff
-    style C fill:#E25A1C,color:#fff
-    style G fill:#CD7F32,color:#fff
-    style H fill:#64748B,color:#fff
+    style C fill:#CD7F32,color:#fff
+    style E fill:#64748B,color:#fff
+    style Q fill:#B91C1C,color:#fff
+    style F fill:#D4AF37,color:#000
+    style G fill:#15803D,color:#fff
 ```
 
-Planned implementation:
+Delivered in this flow:
 
-- Local Spark execution environment.
-- Explicit PySpark schemas.
-- Distributed GeoJSON parsing.
-- Nested feature extraction.
-- Event attribute normalization.
-- Columnar Parquet storage.
-- Partitioned data organization.
-- Distributed record reconciliation.
-- Transformation unit tests.
-- Performance and scalability benchmarks.
+- Local Spark execution with explicit PySpark schemas.
+- Distributed GeoJSON parsing, nested feature extraction, attribute normalization.
+- Columnar Parquet storage, event-year partitioning, distributed reconciliation.
+- Transactional Delta current-state + observed revisions; idempotent replay.
+- Transformation unit tests and measured per-stage benchmarks.
+
+---
+
+## Analytics Dashboard
+
+A Streamlit dashboard (`dashboard/app.py`) consumes the **actual** Gold datasets
+(no hardcoded values) via a testable pandas data-access layer (`dashboard/data.py`).
+
+Views: annual/monthly trends, magnitude and depth distributions, a geographic
+map, significant events (M≥6 or significance≥600), source-network metrics, and
+data-quality trends. Filters: magnitude, depth, reporting network, and event type
+(applied to the event-level fact table).
+
+```bash
+make pipeline       # build Gold first
+make dashboard      # http://localhost:8501
+```
+
+Verified against the full dataset: 281,421 events, annual counts summing to
+281,421, and 1,333 events of magnitude ≥ 6.0. These are descriptive summaries of
+a magnitude-filtered catalog, not earthquake prediction.
+
+---
+
+## Releases
+
+| Version | Scope |
+|---|---|
+| [`v1.0.0`](https://github.com/blkpvnthr/scientific-event-lakehouse/releases/tag/v1.0.0) | Verified complete reference implementation |
+| `v0.11.0` | CI/CD and production testing |
+| `v0.10.0` | Observability, recovery, replay |
+| `v0.9.0` | Apache Airflow orchestration |
+| `v0.8.0` | Terraform infrastructure |
+| `v0.7.0` | AWS S3 integration |
+| `v0.6.0` | Gold analytics |
+| `v0.5.0` | Delta Lake and versioning |
+| `v0.4.0` | Silver normalization and quality |
+| `v0.3.0` | Distributed PySpark Bronze |
+| [`v0.2.0`](https://github.com/blkpvnthr/scientific-event-lakehouse/releases/tag/v0.2.0) | Historical ingestion and profiling |
+
+Each milestone tag points at its verified merge commit. **v1.0.0** is the latest
+stable release.
+
+---
+
+## Technical Documentation
+
+| Document | Contents |
+|---|---|
+| [`docs/architecture/SYSTEM_ARCHITECTURE.md`](docs/architecture/SYSTEM_ARCHITECTURE.md) | End-to-end system + component status |
+| [`docs/architecture/PIPELINE_ARCHITECTURE.md`](docs/architecture/PIPELINE_ARCHITECTURE.md) | Layer contracts, lineage, time semantics |
+| [`docs/architecture/DATA_MODEL.md`](docs/architecture/DATA_MODEL.md) | Gold star schema |
+| [`docs/data_dictionary/EARTHQUAKE_SCHEMA.md`](docs/data_dictionary/EARTHQUAKE_SCHEMA.md) | Bronze schema |
+| [`docs/data_dictionary/GOLD_TABLES.md`](docs/data_dictionary/GOLD_TABLES.md) | Gold datasets |
+| [`docs/DATA_QUALITY.md`](docs/DATA_QUALITY.md) | Rule catalog + thresholds |
+| [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) | Measured performance |
+| [`docs/TESTING.md`](docs/TESTING.md) | Test inventory + scenario map |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) · [`docs/SECURITY.md`](docs/SECURITY.md) | Deployment + security posture |
+| [`docs/LOCAL_DEVELOPMENT.md`](docs/LOCAL_DEVELOPMENT.md) | Developer quickstart |
+| [`docs/runbooks/`](docs/runbooks/README.md) | Operational runbooks |
+| [`docs/RELEASE_AUDIT.md`](docs/RELEASE_AUDIT.md) | Release-readiness audit |
+| [`docs/PROJECT_WALKTHROUGH.md`](docs/PROJECT_WALKTHROUGH.md) · [`docs/INTERVIEW_PREPARATION.md`](docs/INTERVIEW_PREPARATION.md) | Portfolio walkthrough + Q&A |
 
 ---
 
@@ -1975,13 +2109,12 @@ data engineering and analytical development.
 
 ## Project Status
 
-Active development.
+Complete — all 12 milestones implemented, verified, and released.
 
-Latest completed implementation milestone: Historical ingestion and profiling (Milestone 2).
+Latest stable release: **v1.0.0**. Current HEAD is CI-green on `main`.
 
-Release status: Verified and ready for publication.
-
-Next milestone: Distributed PySpark Bronze processing.
+Optional future work (requires authorization): live AWS deployment via
+`terraform apply`, running the pipeline against S3, and managed orchestration.
 
 ---
 
