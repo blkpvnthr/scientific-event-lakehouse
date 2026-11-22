@@ -57,13 +57,22 @@ def build_spark_session(
     )
 
     if with_delta:
-        builder = builder.config(
-            "spark.sql.extensions",
-            "io.delta.sql.DeltaSparkSessionExtension",
-        ).config(
-            "spark.sql.catalog.spark_catalog",
-            "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+        from delta import configure_spark_with_delta_pip
+
+        builder = (
+            builder.config(
+                "spark.sql.extensions",
+                "io.delta.sql.DeltaSparkSessionExtension",
+            )
+            .config(
+                "spark.sql.catalog.spark_catalog",
+                "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+            )
+            # Controlled additive schema evolution on MERGE.
+            .config("spark.databricks.delta.schema.autoMerge.enabled", "true")
         )
+        # Resolve and attach the matching Delta Lake JARs (cached after first run).
+        builder = configure_spark_with_delta_pip(builder)
 
     spark = builder.getOrCreate()
     spark.sparkContext.setLogLevel("WARN")

@@ -23,9 +23,9 @@ Last updated: 2026-11-22
 |---|---|---|---|
 | 0 | Repo & environment audit | main | ✅ done — plan + status written |
 | 3 | PySpark Bronze (Parquet) | feat/pyspark-bronze | ✅ done — merged to main |
-| 4 | Silver normalization + quality | feat/silver-processing | ✅ done — 111 tests, acceptance verified |
-| 5 | Delta Lake + versioning | feat/delta-lake-versioning | 🚧 next |
-| 6 | Gold analytics | feat/gold-analytics | ⬜ todo |
+| 4 | Silver normalization + quality | feat/silver-processing | ✅ done — merged to main |
+| 5 | Delta Lake + versioning | feat/delta-lake-versioning | ✅ done — 121 tests, acceptance verified |
+| 6 | Gold analytics | feat/gold-analytics | 🚧 next |
 | 7 | AWS S3 integration | feat/aws-s3-storage | ⬜ todo |
 | 8 | Terraform IaC | feat/terraform-infrastructure | ⬜ todo |
 | 9 | Airflow orchestration | feat/airflow-orchestration | ⬜ todo |
@@ -57,11 +57,20 @@ Last updated: 2026-11-22
 - Docs: `DATA_QUALITY.md`; README M4 section + diagram. Makefile `silver` target.
 - Tests: `tests/test_quality.py`, `tests/test_silver.py`.
 
+## Milestone 5 — delivered artifacts
+- `src/spark/session.py` — Delta via `configure_spark_with_delta_pip` + autoMerge.
+- `src/delta_lake/merge.py` — upsert_current (newer-wins), insert_revisions
+  (idempotent), upsert_quarantine, latest_per_event, table_version.
+- `src/delta_lake/metadata.py` — pipeline_runs upsert, advance-only watermark.
+- `src/delta_lake/build_delta.py` — Silver→Delta orchestration + CLI.
+- `src/config/settings.py` — added `delta_path` + `delta_table_path()`.
+- Delta tables under `data/warehouse/delta/{silver,metadata}/`.
+- Docs: README M5 section + revision-management diagram. Makefile `delta` target.
+- Tests: `tests/test_delta.py` (10 tests).
+
 ## Resume notes
-Next action: implement Milestone 5 on `feat/delta-lake-versioning` — convert
-Silver outputs to transactional Delta tables (`silver.earthquake_events_current`,
-`earthquake_event_revisions`, `quarantined_events`, `data_quality_results`,
-`metadata.pipeline_runs`, `metadata.processing_watermarks`); idempotent MERGE
-keyed on event_id + content fingerprint; late-arrival / out-of-order handling;
-schema evolution; time travel. SparkSession already supports Delta via
-`build_spark_session(with_delta=True)`.
+Next action: implement Milestone 6 on `feat/gold-analytics` — dimensional model
+(fact_earthquake_event + dims) and the 10 Gold analytical datasets from the
+Delta `earthquake_events_current` table; reusable Spark SQL in `sql/gold` and
+`sql/analytics`; write Gold to `data/warehouse/gold`. Document grain/keys/rules
+in `docs/data_dictionary/GOLD_TABLES.md` and `docs/architecture/DATA_MODEL.md`.

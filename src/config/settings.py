@@ -40,6 +40,7 @@ class Settings:
     silver_path: Path
     gold_path: Path
     metadata_path: Path
+    delta_path: Path
 
     # --- Spark / JVM ---
     java_home: str
@@ -50,6 +51,10 @@ class Settings:
     def run_manifest_dir(self, run_id: str) -> Path:
         """Return the manifest directory for an ingestion run."""
         return self.manifest_path / f"run_id={run_id}"
+
+    def delta_table_path(self, namespace: str, table: str) -> Path:
+        """Return the filesystem path for a Delta table (namespace.table)."""
+        return self.delta_path / namespace / table
 
     def bronze_report_dir(self) -> Path:
         """Return the directory for Bronze reconciliation reports."""
@@ -74,6 +79,7 @@ def get_settings() -> Settings:
         silver_path=_env_path("LAKEHOUSE_SILVER", warehouse / "silver"),
         gold_path=_env_path("LAKEHOUSE_GOLD", warehouse / "gold"),
         metadata_path=_env_path("LAKEHOUSE_METADATA", warehouse / "metadata"),
+        delta_path=_env_path("LAKEHOUSE_DELTA", warehouse / "delta"),
         java_home=os.environ.get("JAVA_HOME", default_java_home),
         spark_master=os.environ.get("SPARK_MASTER", "local[*]"),
         spark_shuffle_partitions=int(os.environ.get("SPARK_SHUFFLE_PARTITIONS", "32")),

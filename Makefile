@@ -38,6 +38,9 @@ bronze: ## Build structured Bronze Parquet for RUN_ID
 silver: ## Build Silver canonical model + data quality for RUN_ID
 	$(PYTHON) -m src.silver.build_silver --run-id $(RUN_ID)
 
+delta: ## Merge Silver outputs into transactional Delta tables for RUN_ID
+	$(PYTHON) -m src.delta_lake.build_delta --run-id $(RUN_ID)
+
 profile: ## Profile a completed ingestion run (RUN_ID)
 	$(PYTHON) -m src.profiling.profile_bronze --run-id $(RUN_ID)
 

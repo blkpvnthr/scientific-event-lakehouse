@@ -23,7 +23,10 @@ def spark():
     """Session-scoped local SparkSession for tests."""
     from src.spark import build_spark_session, stop_spark_session
 
-    session = build_spark_session("lakehouse-tests", shuffle_partitions=2)
+    # Delta-enabled so Delta-table tests work; a superset for non-Delta tests.
+    session = build_spark_session(
+        "lakehouse-tests", with_delta=True, shuffle_partitions=2
+    )
     yield session
     stop_spark_session(session)
 
@@ -42,6 +45,7 @@ def tmp_settings(tmp_path: Path) -> Settings:
         silver_path=warehouse / "silver",
         gold_path=warehouse / "gold",
         metadata_path=warehouse / "metadata",
+        delta_path=warehouse / "delta",
         java_home="/opt/homebrew/opt/openjdk@17",
         spark_master="local[*]",
         spark_shuffle_partitions=2,
