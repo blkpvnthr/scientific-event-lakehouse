@@ -26,9 +26,9 @@ Last updated: 2026-11-22
 | 4 | Silver normalization + quality | feat/silver-processing | ✅ done — merged to main |
 | 5 | Delta Lake + versioning | feat/delta-lake-versioning | ✅ done — merged to main |
 | 6 | Gold analytics | feat/gold-analytics | ✅ done — merged to main |
-| 7 | AWS S3 integration | feat/aws-s3-storage | ✅ done — 135 tests, local+mocked S3 |
-| 8 | Terraform IaC | feat/terraform-infrastructure | 🚧 next |
-| 9 | Airflow orchestration | feat/airflow-orchestration | ⬜ todo |
+| 7 | AWS S3 integration | feat/aws-s3-storage | ✅ done — merged to main |
+| 8 | Terraform IaC | feat/terraform-infrastructure | ✅ done — fmt/init/validate pass (OpenTofu) |
+| 9 | Airflow orchestration | feat/airflow-orchestration | 🚧 next |
 | 10 | Observability & recovery | feat/observability-recovery | ⬜ todo |
 | 11 | CI/CD & production testing | feat/production-ci | ⬜ todo |
 | 12 | Dashboard, docs, benchmarks | feat/analytics-dashboard | ⬜ todo |
@@ -80,11 +80,18 @@ Last updated: 2026-11-22
 - `requirements-aws.txt` (boto3, moto). `.env.example` storage/S3 vars.
 - Docs: `DEPLOYMENT.md`, `SECURITY.md`; README M7. Tests: `tests/test_storage.py`.
 
+## Milestone 8 — delivered artifacts
+- `infrastructure/terraform/modules/{s3_bucket,iam}` + `environments/dev`.
+- Validated with OpenTofu 1.13.9 (`tofu` installed; HCL-compatible w/ terraform).
+- `.gitignore` extended for TF state/tfvars. Makefile `terraform-validate`.
+- Docs: `CLOUD_COST_ESTIMATES.md`, `infrastructure/terraform/README.md`; README M8.
+
 ## Resume notes
-Next action: implement Milestone 8 on `feat/terraform-infrastructure` —
-`infrastructure/terraform/` modules (S3 buckets w/ public-access block,
-encryption, TLS-only policy, versioning, lifecycle; least-privilege IAM) +
-environments + `terraform fmt/validate` (no apply). Then M9 Airflow DAGs, M10
-observability/recovery, M11 CI/CD (GitHub Actions), M12 Streamlit dashboard +
-benchmarks. Terraform validation needs the `terraform` CLI (check availability;
-if absent, provide configs + document validation steps).
+Next action: implement Milestone 9 on `feat/airflow-orchestration` — Airflow
+DAGs (historical processing, incremental ingestion, recovery/replay) under
+`airflow/dags/`, with task retries, idempotent tasks, watermark-safe ordering,
+no large data in XCom. Provide docker-compose for local Airflow. DAG-import +
+task tests must pass without a running scheduler. Then M10 observability/recovery,
+M11 CI/CD (GitHub Actions), M12 Streamlit dashboard + benchmarks.
+Tooling installed so far: OpenJDK 17, Spark 3.5.3, delta-spark 3.2.1, boto3,
+moto, OpenTofu 1.13.9. Branch-per-milestone; merge to main after verification.

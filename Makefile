@@ -52,5 +52,9 @@ profile: ## Profile a completed ingestion run (RUN_ID)
 benchmark: ## Measure Bronze build performance (3 repetitions)
 	$(PYTHON) scripts/benchmark_bronze.py --run-id $(RUN_ID)
 
+terraform-validate: ## Validate Terraform/OpenTofu infrastructure (no apply)
+	cd infrastructure/terraform && tofu fmt -check -recursive .
+	cd infrastructure/terraform/environments/dev && tofu init -backend=false && tofu validate
+
 clean-warehouse: ## Remove structured warehouse outputs (keeps raw archive)
 	rm -rf data/warehouse

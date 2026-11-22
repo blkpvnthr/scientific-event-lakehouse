@@ -12,3 +12,11 @@ data/silver/
 data/gold/
 data/manifests/
 data/profiles/
+
+# Terraform / OpenTofu
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+terraform.tfvars
+crash.log
