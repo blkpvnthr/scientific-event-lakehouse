@@ -28,9 +28,9 @@ Last updated: 2026-11-22
 | 6 | Gold analytics | feat/gold-analytics | ✅ done — merged to main |
 | 7 | AWS S3 integration | feat/aws-s3-storage | ✅ done — merged to main |
 | 8 | Terraform IaC | feat/terraform-infrastructure | ✅ done — merged to main |
-| 9 | Airflow orchestration | feat/airflow-orchestration | ✅ done — DAGs import-verified (airflow 2.10.5) |
-| 10 | Observability & recovery | feat/observability-recovery | 🚧 next |
-| 11 | CI/CD & production testing | feat/production-ci | ⬜ todo |
+| 9 | Airflow orchestration | feat/airflow-orchestration | ✅ done — merged to main |
+| 10 | Observability & recovery | feat/observability-recovery | ✅ done — 152 tests |
+| 11 | CI/CD & production testing | feat/production-ci | 🚧 next |
 | 12 | Dashboard, docs, benchmarks | feat/analytics-dashboard | ⬜ todo |
 
 ## Decisions log
@@ -94,12 +94,20 @@ Last updated: 2026-11-22
 - DAG imports verified with apache-airflow 2.10.5 in `.venv-airflow`.
 - Docs: `LOCAL_DEVELOPMENT.md`; README M9. Makefile airflow-up/down, dags-validate.
 
+## Milestone 10 — delivered artifacts
+- `src/monitoring/` — logging (JSON + redaction), metrics, alerts.
+- `src/recovery/` — incomplete-run detection, replayable discovery, watermark guard.
+- `docs/runbooks/` — failed run, watermark, quarantine spike. README M10.
+- Tests: `tests/test_monitoring.py`, `tests/test_recovery.py`.
+
 ## Resume notes
-Next action: implement Milestone 10 on `feat/observability-recovery` —
-structured logging (run ids, stage, durations, counts, redaction) in
-`src/monitoring/`, metrics collection, recovery/replay helpers in `src/recovery/`
-(failed-run detection, incomplete-output detection, safe restart), alerting hooks
-with local test impls, and operational runbooks under `docs/runbooks/`. Then M11
-CI/CD (GitHub Actions) and M12 Streamlit dashboard + benchmarks.
+Next action: implement Milestone 11 on `feat/production-ci` — GitHub Actions
+workflows (`.github/workflows/`): lint (ruff), format check, unit+Spark+Delta
+tests, Terraform/OpenTofu validate, DAG-import (airflow venv), Docker build check,
+dependency + secret scanning, coverage, small synthetic end-to-end. Add
+`docs/TESTING.md` test inventory. Use small deterministic datasets; don't require
+the full historical dataset or cloud creds in PR CI. Then M12 Streamlit dashboard
++ benchmarks + remaining docs (SYSTEM/PIPELINE architecture, PROJECT_WALKTHROUGH,
+INTERVIEW_PREPARATION).
 Tooling: OpenJDK 17, Spark 3.5.3, delta-spark 3.2.1, boto3, moto, OpenTofu 1.13.9,
-apache-airflow 2.10.5 (.venv-airflow). 128 tests in main suite.
+apache-airflow 2.10.5 (.venv-airflow).
