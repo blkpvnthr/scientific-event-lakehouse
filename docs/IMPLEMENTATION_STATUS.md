@@ -24,9 +24,9 @@ Last updated: 2026-11-22
 | 0 | Repo & environment audit | main | ✅ done — plan + status written |
 | 3 | PySpark Bronze (Parquet) | feat/pyspark-bronze | ✅ done — merged to main |
 | 4 | Silver normalization + quality | feat/silver-processing | ✅ done — merged to main |
-| 5 | Delta Lake + versioning | feat/delta-lake-versioning | ✅ done — 121 tests, acceptance verified |
-| 6 | Gold analytics | feat/gold-analytics | 🚧 next |
-| 7 | AWS S3 integration | feat/aws-s3-storage | ⬜ todo |
+| 5 | Delta Lake + versioning | feat/delta-lake-versioning | ✅ done — merged to main |
+| 6 | Gold analytics | feat/gold-analytics | ✅ done — 124 tests, acceptance verified |
+| 7 | AWS S3 integration | feat/aws-s3-storage | 🚧 next |
 | 8 | Terraform IaC | feat/terraform-infrastructure | ⬜ todo |
 | 9 | Airflow orchestration | feat/airflow-orchestration | ⬜ todo |
 | 10 | Observability & recovery | feat/observability-recovery | ⬜ todo |
@@ -68,9 +68,17 @@ Last updated: 2026-11-22
 - Docs: README M5 section + revision-management diagram. Makefile `delta` target.
 - Tests: `tests/test_delta.py` (10 tests).
 
+## Milestone 6 — delivered artifacts
+- `src/gold/build_gold.py` — star schema (fact + 5 dims) + 10 analytical datasets.
+- `src/gold/queries.py` — register Delta views + run SQL files.
+- `sql/analytics/01..10_*.sql` — 10 reusable Spark SQL queries.
+- Docs: `architecture/DATA_MODEL.md`, `data_dictionary/GOLD_TABLES.md`; README M6.
+- Makefile `gold` + `pipeline` targets. Tests: `tests/test_gold.py`.
+
 ## Resume notes
-Next action: implement Milestone 6 on `feat/gold-analytics` — dimensional model
-(fact_earthquake_event + dims) and the 10 Gold analytical datasets from the
-Delta `earthquake_events_current` table; reusable Spark SQL in `sql/gold` and
-`sql/analytics`; write Gold to `data/warehouse/gold`. Document grain/keys/rules
-in `docs/data_dictionary/GOLD_TABLES.md` and `docs/architecture/DATA_MODEL.md`.
+Next action: implement Milestone 7 on `feat/aws-s3-storage` — storage
+abstraction (`src/storage/`) over local filesystem + S3 (via `s3a://` for Spark,
+boto3 for raw objects); env-based config; AWS-native credential discovery;
+local works without creds; integration tests with moto/local mock. No real AWS
+resources without authorization. Then M8 Terraform, M9 Airflow, M10
+observability, M11 CI/CD, M12 dashboard + benchmarks.

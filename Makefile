@@ -41,6 +41,11 @@ silver: ## Build Silver canonical model + data quality for RUN_ID
 delta: ## Merge Silver outputs into transactional Delta tables for RUN_ID
 	$(PYTHON) -m src.delta_lake.build_delta --run-id $(RUN_ID)
 
+gold: ## Build Gold dimensional model + analytical datasets
+	$(PYTHON) -m src.gold.build_gold
+
+pipeline: bronze silver delta gold ## Run Bronze -> Silver -> Delta -> Gold for RUN_ID
+
 profile: ## Profile a completed ingestion run (RUN_ID)
 	$(PYTHON) -m src.profiling.profile_bronze --run-id $(RUN_ID)
 

@@ -74,7 +74,7 @@ Apache Airflow, Docker, and Terraform.
 | 3 | Distributed PySpark Bronze processing | Complete (locally verified) |
 | 4 | Silver normalization and data quality | Complete (locally verified) |
 | 5 | Delta Lake versioning and schema evolution | Complete (locally verified) |
-| 6 | Gold analytical transformations | Planned |
+| 6 | Gold analytical transformations | Complete (locally verified) |
 | 7 | AWS S3 integration | Planned |
 | 8 | Terraform infrastructure | Planned |
 | 9 | Apache Airflow orchestration | Planned |
@@ -927,6 +927,65 @@ Measured on run `3d8d9a251f33489e807356890c692789`:
 
 Single-writer Delta on local/object storage only; no concurrent multi-writer
 guarantees are claimed.
+
+---
+
+## Milestone 6: Gold Analytical Data Products
+
+Milestone 6 builds a documented star schema and ten analytical datasets from the
+transactional Silver `earthquake_events_current` table, plus ten reusable Spark
+SQL queries. All aggregates derive from the same validated current-state table,
+so Gold counts reconcile to it.
+
+### Dimensional Model
+
+```mermaid
+flowchart TD
+    F[fact_earthquake_event] --> D1[dim_date]
+    F --> D2[dim_magnitude_type]
+    F --> D3[dim_event_type]
+    F --> D4[dim_source_network]
+    F --> D5[dim_geographic_region]
+
+    F --> G1[daily / monthly / annual activity]
+    F --> G2[geographic activity + hotspots]
+    F --> G3[magnitude + depth distributions]
+    F --> G4[significant events]
+    F --> G5[source network metrics]
+    Q[(data_quality_results)] --> G6[data quality trends]
+
+    style F fill:#B8860B,color:#fff
+    style Q fill:#15803D,color:#fff
+```
+
+### Implemented Capabilities
+
+- Star schema: `fact_earthquake_event` + five conformed dimensions.
+- Ten analytical datasets (daily/monthly/annual, geographic, magnitude, depth,
+  significant events, hotspots, network metrics, quality trends).
+- Ten reusable Spark SQL queries (`sql/analytics/`) demonstrating CTEs, window
+  functions (lag, rank, rolling range), ranking, and conditional aggregation.
+- Fact reconciliation to the current-events table.
+
+### Verified Acceptance Results
+
+Built from 281,421 current events (run `3d8d9a25…`):
+
+| Dataset | Rows |
+|---|---:|
+| `fact_earthquake_event` (reconciled) | 281,421 |
+| `dim_date` | 3,653 |
+| `annual_seismic_activity` | 10 |
+| `monthly_seismic_activity` | 120 |
+| `significant_events` (M≥6 or sig≥600) | 1,861 |
+| `geographic_seismic_activity` / `seismic_hotspots` | 435 cells |
+| `source_network_metrics` | 20 |
+
+All ten analytics SQL queries execute successfully. See
+[`docs/architecture/DATA_MODEL.md`](docs/architecture/DATA_MODEL.md) and
+[`docs/data_dictionary/GOLD_TABLES.md`](docs/data_dictionary/GOLD_TABLES.md).
+These are descriptive summaries of a magnitude-filtered catalog, **not**
+earthquake prediction.
 
 ---
 
