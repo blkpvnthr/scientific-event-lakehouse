@@ -73,7 +73,7 @@ Apache Airflow, Docker, and Terraform.
 | 2 | Historical ingestion, archival, and profiling | Complete |
 | 3 | Distributed PySpark Bronze processing | Complete (locally verified) |
 | 4 | Silver normalization and data quality | Complete (locally verified) |
-| 5 | Delta Lake versioning and schema evolution | Planned |
+| 5 | Delta Lake versioning and schema evolution | Complete (locally verified) |
 | 6 | Gold analytical transformations | Planned |
 | 7 | AWS S3 integration | Planned |
 | 8 | Terraform infrastructure | Planned |
@@ -861,6 +861,72 @@ Measured on run `3d8d9a251f33489e807356890c692789`:
 
 See [`docs/DATA_QUALITY.md`](docs/DATA_QUALITY.md) for the rule catalog and
 scientific justification of thresholds.
+
+---
+
+## Milestone 5: Delta Lake, Versioning, and Schema Evolution
+
+Milestone 5 introduces transactional lakehouse tables using Delta Lake 3.2.1.
+Silver outputs are merged into ACID Delta tables with idempotent MERGE
+semantics, deterministic revision conflict resolution, controlled additive
+schema evolution, time travel, and advance-only processing watermarks.
+
+### Delta Tables
+
+| Table | Namespace | Semantics |
+|---|---|---|
+| `earthquake_events_current` | silver | Upsert on `event_id`; newer `updated_time` wins |
+| `earthquake_event_revisions` | silver | Insert-only on `(event_id, fingerprint)` |
+| `quarantined_events` | silver | Upsert on `event_id` |
+| `data_quality_results` | silver | Upsert on `(run_id, rule_id)` |
+| `pipeline_runs` | metadata | Upsert on `(run_id, stage)` |
+| `processing_watermarks` | metadata | Advance-only on `watermark_name` |
+
+### Revision Management
+
+```mermaid
+flowchart TD
+    A[Incoming Silver Revisions] --> B{Exists in revisions?<br/>event_id + fingerprint}
+    B -- no --> C[Insert new revision]
+    B -- yes --> D[Skip: idempotent replay]
+    A --> E[Reduce to latest per event]
+    E --> F{Matches current event_id?}
+    F -- no --> G[Insert current]
+    F -- yes --> H{incoming updated_time ><br/>current updated_time?}
+    H -- yes --> I[Update current: newer wins]
+    H -- no --> J[Ignore: late/older revision]
+
+    style C fill:#15803D,color:#fff
+    style I fill:#2563EB,color:#fff
+    style D fill:#6B7280,color:#fff
+    style J fill:#6B7280,color:#fff
+```
+
+### Time Semantics
+
+Four times are kept distinct: **event occurrence** (`event_time`), **source
+revision** (`updated_time`), **ingestion** (`ingestion_timestamp`), and
+**processing** (`processing_timestamp`). The project never claims to reconstruct
+source revisions that were not actually observed and archived.
+
+### Verified Acceptance Results
+
+Measured on run `3d8d9a251f33489e807356890c692789`:
+
+| Criterion | Result |
+|---|---|
+| Current events | 281,421 |
+| Observed revisions | 281,421 |
+| Reprocessing identical data | No new revisions (MERGE updated/inserted 0) |
+| Newer revision updates current | Verified (unit + Delta history) |
+| Older late-arriving revision ignored | Verified |
+| Schema evolution (additive) | Verified via Delta auto-merge |
+| Time travel | `versionAsOf 0` returns prior state |
+| Transactional atomicity on failure | Table unchanged after failed MERGE |
+| Watermark advance-only | Verified (never regresses) |
+
+Single-writer Delta on local/object storage only; no concurrent multi-writer
+guarantees are claimed.
 
 ---
 
