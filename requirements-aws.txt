@@ -1,0 +1,4 @@
+# AWS storage integration (Milestone 7).
+# boto3 for object storage; moto for mocked S3 in tests (no real AWS calls).
+boto3==1.44.9
+moto[s3]==5.2.5

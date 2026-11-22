@@ -25,9 +25,9 @@ Last updated: 2026-11-22
 | 3 | PySpark Bronze (Parquet) | feat/pyspark-bronze | ✅ done — merged to main |
 | 4 | Silver normalization + quality | feat/silver-processing | ✅ done — merged to main |
 | 5 | Delta Lake + versioning | feat/delta-lake-versioning | ✅ done — merged to main |
-| 6 | Gold analytics | feat/gold-analytics | ✅ done — 124 tests, acceptance verified |
-| 7 | AWS S3 integration | feat/aws-s3-storage | 🚧 next |
-| 8 | Terraform IaC | feat/terraform-infrastructure | ⬜ todo |
+| 6 | Gold analytics | feat/gold-analytics | ✅ done — merged to main |
+| 7 | AWS S3 integration | feat/aws-s3-storage | ✅ done — 135 tests, local+mocked S3 |
+| 8 | Terraform IaC | feat/terraform-infrastructure | 🚧 next |
 | 9 | Airflow orchestration | feat/airflow-orchestration | ⬜ todo |
 | 10 | Observability & recovery | feat/observability-recovery | ⬜ todo |
 | 11 | CI/CD & production testing | feat/production-ci | ⬜ todo |
@@ -75,10 +75,16 @@ Last updated: 2026-11-22
 - Docs: `architecture/DATA_MODEL.md`, `data_dictionary/GOLD_TABLES.md`; README M6.
 - Makefile `gold` + `pipeline` targets. Tests: `tests/test_gold.py`.
 
+## Milestone 7 — delivered artifacts
+- `src/storage/` — base ABC, LocalStorage, S3Storage, factory, spark_s3 configs.
+- `requirements-aws.txt` (boto3, moto). `.env.example` storage/S3 vars.
+- Docs: `DEPLOYMENT.md`, `SECURITY.md`; README M7. Tests: `tests/test_storage.py`.
+
 ## Resume notes
-Next action: implement Milestone 7 on `feat/aws-s3-storage` — storage
-abstraction (`src/storage/`) over local filesystem + S3 (via `s3a://` for Spark,
-boto3 for raw objects); env-based config; AWS-native credential discovery;
-local works without creds; integration tests with moto/local mock. No real AWS
-resources without authorization. Then M8 Terraform, M9 Airflow, M10
-observability, M11 CI/CD, M12 dashboard + benchmarks.
+Next action: implement Milestone 8 on `feat/terraform-infrastructure` —
+`infrastructure/terraform/` modules (S3 buckets w/ public-access block,
+encryption, TLS-only policy, versioning, lifecycle; least-privilege IAM) +
+environments + `terraform fmt/validate` (no apply). Then M9 Airflow DAGs, M10
+observability/recovery, M11 CI/CD (GitHub Actions), M12 Streamlit dashboard +
+benchmarks. Terraform validation needs the `terraform` CLI (check availability;
+if absent, provide configs + document validation steps).

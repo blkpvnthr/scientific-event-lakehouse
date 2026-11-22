@@ -75,7 +75,7 @@ Apache Airflow, Docker, and Terraform.
 | 4 | Silver normalization and data quality | Complete (locally verified) |
 | 5 | Delta Lake versioning and schema evolution | Complete (locally verified) |
 | 6 | Gold analytical transformations | Complete (locally verified) |
-| 7 | AWS S3 integration | Planned |
+| 7 | AWS S3 integration | Complete (local + mocked S3) |
 | 8 | Terraform infrastructure | Planned |
 | 9 | Apache Airflow orchestration | Planned |
 | 10 | Monitoring, recovery, and replay | Planned |
@@ -986,6 +986,51 @@ All ten analytics SQL queries execute successfully. See
 [`docs/data_dictionary/GOLD_TABLES.md`](docs/data_dictionary/GOLD_TABLES.md).
 These are descriptive summaries of a magnitude-filtered catalog, **not**
 earthquake prediction.
+
+---
+
+## Milestone 7: AWS S3 Integration
+
+Milestone 7 adds a storage abstraction (`src/storage`) supporting local
+filesystem and AWS S3 behind one interface. Local development and CI require no
+AWS credentials; switching to S3 is configuration only. S3 behavior is verified
+against a mocked S3 service (moto) — no real AWS resources are created.
+
+### Implemented Capabilities
+
+- `StorageBackend` interface with `LocalStorage` and `S3Storage`.
+- Environment-based backend selection (`STORAGE_BACKEND`).
+- AWS-native credential discovery (no hard-coded secrets).
+- Deterministic keys; raw / bronze / silver / gold / metadata prefix separation.
+- Append-only writes (no silent overwrite) with explicit opt-in.
+- Spark `s3a://` configuration helper (single-writer Delta on S3).
+- Integration tests against mocked S3.
+
+### Storage Abstraction
+
+```mermaid
+flowchart TD
+    P[Pipeline code] --> I[StorageBackend interface]
+    I --> L[LocalStorage]
+    I --> S[S3Storage]
+    L --> LF[(Local filesystem)]
+    S --> B[(AWS S3 bucket/prefix)]
+    C[STORAGE_BACKEND env] -. selects .-> I
+
+    style I fill:#2563EB,color:#fff
+    style B fill:#FF9900,color:#000
+```
+
+### Verified Acceptance Results
+
+- 11 storage tests pass (local + mocked S3).
+- Local execution works without AWS credentials.
+- S3 paths are deterministic; existing objects are not silently overwritten.
+- Raw, processed, and metadata locations are separated by prefix.
+
+Single-writer Delta on S3 only; no concurrent multi-writer guarantees are
+claimed. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) and
+[`docs/SECURITY.md`](docs/SECURITY.md).
 
 ---
 
