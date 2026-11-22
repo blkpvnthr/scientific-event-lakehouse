@@ -29,9 +29,9 @@ Last updated: 2026-11-22
 | 7 | AWS S3 integration | feat/aws-s3-storage | ✅ done — merged to main |
 | 8 | Terraform IaC | feat/terraform-infrastructure | ✅ done — merged to main |
 | 9 | Airflow orchestration | feat/airflow-orchestration | ✅ done — merged to main |
-| 10 | Observability & recovery | feat/observability-recovery | ✅ done — 152 tests |
-| 11 | CI/CD & production testing | feat/production-ci | 🚧 next |
-| 12 | Dashboard, docs, benchmarks | feat/analytics-dashboard | ⬜ todo |
+| 10 | Observability & recovery | feat/observability-recovery | ✅ done — merged to main |
+| 11 | CI/CD & production testing | feat/production-ci | ✅ done — 153 tests, 85% cov, CI authored |
+| 12 | Dashboard, docs, benchmarks | feat/analytics-dashboard | 🚧 next |
 
 ## Decisions log
 - Raw `data/bronze/` kept as landing zone; structured outputs → `data/warehouse/{bronze,silver,gold,metadata}/`.
@@ -100,14 +100,19 @@ Last updated: 2026-11-22
 - `docs/runbooks/` — failed run, watermark, quarantine spike. README M10.
 - Tests: `tests/test_monitoring.py`, `tests/test_recovery.py`.
 
+## Milestone 11 — delivered artifacts
+- `.github/workflows/ci.yml` (lint/test/coverage, dep+secret scan, tofu validate,
+  airflow DAG import, docker build) + `benchmark.yml` (manual).
+- `tests/test_end_to_end.py` — synthetic full-pipeline + idempotent replay.
+- `requirements-dev.txt`; `docs/TESTING.md` (inventory + scenario map). README M11.
+- 153 tests, 85% coverage.
+
 ## Resume notes
-Next action: implement Milestone 11 on `feat/production-ci` — GitHub Actions
-workflows (`.github/workflows/`): lint (ruff), format check, unit+Spark+Delta
-tests, Terraform/OpenTofu validate, DAG-import (airflow venv), Docker build check,
-dependency + secret scanning, coverage, small synthetic end-to-end. Add
-`docs/TESTING.md` test inventory. Use small deterministic datasets; don't require
-the full historical dataset or cloud creds in PR CI. Then M12 Streamlit dashboard
-+ benchmarks + remaining docs (SYSTEM/PIPELINE architecture, PROJECT_WALKTHROUGH,
-INTERVIEW_PREPARATION).
+Next action (final): Milestone 12 on `feat/analytics-dashboard` — Streamlit
+dashboard consuming real Gold datasets (no hardcoded numbers), with filters;
+measured benchmarks doc already covers Bronze; add remaining architecture docs
+(`SYSTEM_ARCHITECTURE.md`, `PIPELINE_ARCHITECTURE.md`), `PROJECT_WALKTHROUGH.md`,
+`INTERVIEW_PREPARATION.md`. Then final engineering report. Consider v1.0.0 tag
+only with user authorization (do not push/tag automatically).
 Tooling: OpenJDK 17, Spark 3.5.3, delta-spark 3.2.1, boto3, moto, OpenTofu 1.13.9,
-apache-airflow 2.10.5 (.venv-airflow).
+apache-airflow 2.10.5 (.venv-airflow), pytest-cov.

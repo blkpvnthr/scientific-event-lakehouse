@@ -79,7 +79,7 @@ Apache Airflow, Docker, and Terraform.
 | 8 | Terraform infrastructure | Complete (validated, not applied) |
 | 9 | Apache Airflow orchestration | Complete (DAGs import-verified) |
 | 10 | Monitoring, recovery, and replay | Complete (locally verified) |
-| 11 | CI/CD and system integration | Planned |
+| 11 | CI/CD and system integration | Complete (workflows validated) |
 | 12 | Analytics, documentation, and benchmarks | Planned |
 
 ---
@@ -1177,6 +1177,48 @@ flowchart LR
   convention (append-only writers), not by object-lock, until configured.
 
 See [`docs/runbooks/`](docs/runbooks/README.md).
+
+---
+
+## Milestone 11: CI/CD and Production Testing
+
+Milestone 11 adds GitHub Actions workflows and a synthetic end-to-end test. PR CI
+uses small deterministic data — it never requires the full historical dataset or
+cloud credentials.
+
+### CI jobs (`.github/workflows/ci.yml`)
+
+```mermaid
+flowchart TD
+    PR[Push / PR] --> L[Lint + format + tests + coverage]
+    PR --> S[Dependency scan pip-audit + secret scan gitleaks]
+    PR --> T[Terraform/OpenTofu validate]
+    PR --> A[Airflow DAG import]
+    PR --> D[Docker build verification]
+
+    style L fill:#2563EB,color:#fff
+    style S fill:#B91C1C,color:#fff
+    style T fill:#7C3AED,color:#fff
+```
+
+### Implemented Capabilities
+
+- Lint (ruff), format check, unit + Spark + Delta tests with coverage.
+- Dependency vulnerability scan (pip-audit) and secret scan (gitleaks).
+- Terraform/OpenTofu fmt + validate; Airflow DAG-import job; Docker build check.
+- Synthetic end-to-end pipeline test (`tests/test_end_to_end.py`).
+- Separate manual benchmark workflow (`.github/workflows/benchmark.yml`).
+
+### Verified Acceptance Results
+
+- **153 tests passing, 1 skipped**, **85% line coverage** of `src/`.
+- Workflow YAML validated; end-to-end synthetic pipeline (Bronze→Silver→Delta→
+  Gold, including idempotent replay) passes locally.
+- A documented test inventory maps every required scenario to a test
+  ([`docs/TESTING.md`](docs/TESTING.md)).
+
+> The GitHub Actions runs themselves execute on GitHub once pushed; they are
+> authored and locally validated here but not triggered without a push.
 
 ---
 
