@@ -71,7 +71,7 @@ Apache Airflow, Docker, and Terraform.
 |---|---|---|
 | 1 | Initial USGS API ingestion | Complete |
 | 2 | Historical ingestion, archival, and profiling | Complete |
-| 3 | Distributed PySpark Bronze processing | Planned |
+| 3 | Distributed PySpark Bronze processing | Complete (locally verified) |
 | 4 | Silver normalization and data quality | Planned |
 | 5 | Delta Lake versioning and schema evolution | Planned |
 | 6 | Gold analytical transformations | Planned |
@@ -721,6 +721,79 @@ cause an integrity failure.
 
 Downstream scientific acceptance and quarantine rules
 will be introduced during Silver-layer development.
+
+---
+
+## Milestone 3: Distributed PySpark Bronze Processing
+
+Milestone 3 introduces a distributed Bronze processing layer built on
+Apache Spark 3.5.3 and PySpark. It reads the immutable raw GeoJSON landing
+zone, verifies every source file against its manifest checksum, explodes
+nested features into event-level records with explicit scientific schemas,
+and publishes a structured, columnar Parquet Bronze dataset.
+
+The raw archive is **only read, never modified**. Structured outputs are
+written to a separate `data/warehouse/bronze` tree so the verified
+Milestone 2 archive is preserved byte-for-byte.
+
+### Implemented Capabilities
+
+- Centralized, reproducible SparkSession configuration (UTC, local master).
+- Explicit PySpark schemas for the USGS GeoJSON FeatureCollection.
+- Manifest-driven source discovery (run completion + window validation).
+- Driver-side SHA-256 + byte-size verification before any Spark job.
+- Distributed JSON parsing and feature explosion.
+- Extraction of scientific attributes and full source/page provenance.
+- Epoch-millisecond to UTC timestamp conversion.
+- Columnar Parquet output partitioned by `event_year` (low cardinality).
+- Independent post-write reconciliation against manifest totals.
+- Idempotent reprocessing via dynamic partition overwrite.
+
+### Bronze Processing Architecture
+
+```mermaid
+flowchart LR
+    A[(Raw GeoJSON Landing Zone)] --> B[Manifest-Driven Discovery]
+    M[Window + Run Manifests] --> B
+    B --> C[SHA-256 + Size Verification]
+    C --> D[Spark Read with Explicit Schema]
+    D --> E[Explode Features to Events]
+    E --> F[Extract Scientific Attributes]
+    F --> G[Provenance Join by window+offset]
+    M --> G
+    G --> H[UTC Timestamp Conversion]
+    H --> I[Partition by event_year]
+    I --> J[(Bronze Parquet)]
+    J --> K[Post-Write Reconciliation]
+    M --> K
+    K --> L[Reconciliation Report]
+
+    style A fill:#CD7F32,color:#fff
+    style J fill:#2563EB,color:#fff
+    style C fill:#B91C1C,color:#fff
+    style L fill:#15803D,color:#fff
+```
+
+### Verified Acceptance Results
+
+Measured on the historical run `3d8d9a251f33489e807356890c692789`
+(Apple Silicon arm64, 18 cores, 48 GiB RAM; OpenJDK 17, Spark 3.5.3):
+
+| Metric | Result |
+|---|---:|
+| Source files accounted for | 347 / 347 |
+| Records reconciled | 281,421 / 281,421 |
+| Duplicate events | 0 |
+| Output Parquet size | 25.07 MiB |
+| Compression vs raw payload | 7.68x |
+| Processing duration (min of 3, warm JVM) | 2.56 s |
+| Throughput | ~110,000 records/s |
+| Idempotent re-run | No record multiplication |
+| Integrity status | PASS |
+
+Full methodology and per-repetition figures are in
+[`docs/BENCHMARKS.md`](docs/BENCHMARKS.md); the Bronze schema is documented
+in [`docs/data_dictionary/EARTHQUAKE_SCHEMA.md`](docs/data_dictionary/EARTHQUAKE_SCHEMA.md).
 
 ---
 

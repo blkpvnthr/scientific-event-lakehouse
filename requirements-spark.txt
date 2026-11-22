@@ -1,0 +1,5 @@
+# Distributed processing stack (Milestones 3-6).
+# Kept separate from requirements.txt so the core ingestion install stays light.
+# Requires a JDK 8/11/17 on PATH (project uses OpenJDK 17).
+pyspark==3.5.3
+delta-spark==3.2.1
