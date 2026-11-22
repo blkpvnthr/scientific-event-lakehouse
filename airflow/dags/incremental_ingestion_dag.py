@@ -72,8 +72,14 @@ with DAG(
         python_callable=tasks.run_silver,
         op_kwargs={"run_id": pulled_run_id},
     )
+    quality = PythonOperator(
+        task_id="quality_gate",
+        python_callable=tasks.quality_gate,
+        op_kwargs={"run_id": pulled_run_id},
+    )
     delta = PythonOperator(
-        task_id="merge_delta",  # advances the watermark on success only
+        # Advances the watermark on success only, and only AFTER the quality gate.
+        task_id="merge_delta",
         python_callable=tasks.run_delta,
         op_kwargs={"run_id": pulled_run_id},
     )
@@ -82,19 +88,16 @@ with DAG(
         python_callable=tasks.run_gold,
         op_kwargs={"run_id": pulled_run_id},
     )
-    quality = PythonOperator(
-        task_id="quality_gate",
-        python_callable=tasks.quality_gate,
-        op_kwargs={"run_id": pulled_run_id},
-    )
 
+    # Quality gate precedes the Delta merge so a fatal failure halts the run
+    # before the watermark advances.
     (
         determine_interval
         >> extract
         >> validate
         >> bronze
         >> silver
+        >> quality
         >> delta
         >> gold
-        >> quality
     )

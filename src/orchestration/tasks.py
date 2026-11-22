@@ -104,15 +104,17 @@ def run_gold(run_id: str | None = None) -> dict:
 def quality_gate(run_id: str) -> dict:
     """Fail the pipeline if any FATAL data-quality rule failed.
 
-    Reads the Silver data_quality_results Delta table. Warnings do not fail.
+    Reads the Silver **Parquet** ``data_quality_results`` written by the Silver
+    stage. This lets the gate run *before* the Delta merge, so a fatal failure
+    halts the pipeline before the watermark is advanced. Warnings do not fail.
     """
     from src.spark import build_spark_session, stop_spark_session
 
     settings = get_settings()
-    spark = build_spark_session("airflow-quality", with_delta=True)
+    spark = build_spark_session("airflow-quality")
     try:
-        path = settings.delta_table_path("silver", "data_quality_results")
-        df = spark.read.format("delta").load(str(path)).filter(f"run_id = '{run_id}'")
+        path = settings.silver_path / "data_quality_results"
+        df = spark.read.parquet(str(path)).filter(f"run_id = '{run_id}'")
         rows = df.collect()
         fatal = sum(
             r["observed_failure_count"] for r in rows if r["severity"] == "fatal"

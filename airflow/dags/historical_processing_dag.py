@@ -77,4 +77,6 @@ with DAG(
         op_kwargs={"run_id": run_id},
     )
 
-    validate >> bronze >> silver >> delta >> gold >> quality >> report
+    # Quality gate runs BEFORE the Delta merge so a fatal failure halts the
+    # pipeline before the watermark is advanced.
+    validate >> bronze >> silver >> quality >> delta >> gold >> report
