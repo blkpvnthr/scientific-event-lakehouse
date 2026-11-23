@@ -78,7 +78,7 @@ with DAG(
         op_kwargs={"run_id": pulled_run_id},
     )
     delta = PythonOperator(
-        # Advances the watermark on success only, and only AFTER the quality gate.
+        # Merge only — does NOT advance the watermark.
         task_id="merge_delta",
         python_callable=tasks.run_delta,
         op_kwargs={"run_id": pulled_run_id},
@@ -88,9 +88,20 @@ with DAG(
         python_callable=tasks.run_gold,
         op_kwargs={"run_id": pulled_run_id},
     )
+    reconcile = PythonOperator(
+        task_id="reconcile",
+        python_callable=tasks.reconcile_run,
+        op_kwargs={"run_id": pulled_run_id},
+    )
+    commit = PythonOperator(
+        # The watermark is committed LAST, only after Gold + reconciliation.
+        task_id="commit_watermark",
+        python_callable=tasks.commit_watermark,
+        op_kwargs={"run_id": pulled_run_id},
+    )
 
-    # Quality gate precedes the Delta merge so a fatal failure halts the run
-    # before the watermark advances.
+    # Quality gate precedes the merge; the watermark is committed only after Gold
+    # and reconciliation succeed, so any downstream failure leaves it unchanged.
     (
         determine_interval
         >> extract
@@ -100,4 +111,6 @@ with DAG(
         >> quality
         >> delta
         >> gold
+        >> reconcile
+        >> commit
     )

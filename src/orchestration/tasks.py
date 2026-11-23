@@ -126,6 +126,51 @@ def quality_gate(run_id: str) -> dict:
         stop_spark_session(spark)
 
 
+def reconcile_run(run_id: str) -> dict:
+    """Final reconciliation: Gold fact rows must equal Delta current-state rows.
+
+    Runs after Gold and before the watermark is committed. A mismatch raises, so
+    the watermark is not advanced for an inconsistent run.
+    """
+    from src.spark import build_spark_session, stop_spark_session
+
+    settings = get_settings()
+    spark = build_spark_session("airflow-reconcile", with_delta=True)
+    try:
+        current = (
+            spark.read.format("delta")
+            .load(str(settings.delta_table_path("silver", "earthquake_events_current")))
+            .count()
+        )
+        fact = spark.read.parquet(
+            str(settings.gold_path / "fact_earthquake_event")
+        ).count()
+        if fact != current:
+            raise RuntimeError(
+                f"Reconciliation failed: gold fact={fact} != delta current={current}"
+            )
+        return {"delta_current": current, "gold_fact": fact}
+    finally:
+        stop_spark_session(spark)
+
+
+def commit_watermark(run_id: str) -> dict:
+    """Commit the processing watermark — the FINAL task of a successful run.
+
+    Advances the watermark only after the merge, Gold, and reconciliation have all
+    succeeded. Advance-only, so a replayed/older run never regresses it.
+    """
+    from src.delta_lake.build_delta import commit_watermark as _commit
+    from src.spark import build_spark_session, stop_spark_session
+
+    spark = build_spark_session("airflow-commit-watermark", with_delta=True)
+    try:
+        watermark = _commit(spark, run_id, get_settings())
+        return {"watermark": watermark}
+    finally:
+        stop_spark_session(spark)
+
+
 def publish_execution_report(run_id: str, stage_summaries: dict | None = None) -> str:
     """Write a small JSON execution report and return its path."""
     settings = get_settings()

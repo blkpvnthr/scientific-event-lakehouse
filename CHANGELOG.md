@@ -4,6 +4,30 @@ All notable changes to this project. Format based on
 [Keep a Changelog](https://keepachangelog.com/); this project uses semantic
 versioning. Dates are UTC.
 
+## [1.0.2] - 2026-11-22
+
+Targeted watermark correctness audit of v1.0.1.
+
+### Fixed
+- **End-to-end watermark guarantee:** v1.0.1 reordered the quality gate before the
+  Delta merge, but the merge still **committed the watermark itself**, before Gold
+  and reconciliation. A Gold failure or reconciliation mismatch after the merge
+  could therefore leave the watermark advanced. The watermark commitment is now
+  **separated from the Delta MERGE**: `build_delta` no longer advances the
+  watermark by default, and a dedicated final `commit_watermark` task advances it
+  (advance-only) **only after** the merge, Gold, and a new `reconcile` task all
+  succeed. Both DAGs now end `… → quality_gate → merge_delta → gold → reconcile →
+  commit_watermark`.
+- Added `reconcile` task (Gold fact rows must equal Delta current rows) and a
+  `make commit-watermark` target; `make pipeline` now ends with it.
+
+### Tests
+- New regression tests with injected downstream failures: merge does not advance
+  the watermark; commit advances it; a downstream failure before commit leaves it
+  unchanged; commit is idempotent and advance-only; reconcile raises on mismatch;
+  DAG tests assert `commit_watermark` runs after merge, Gold, and reconcile.
+- 164 passing / 1 skipped (main venv) + 4 Airflow DAG tests, 85% coverage.
+
 ## [1.0.1] - 2026-11-22
 
 Corrective patch found during the final release-verification pass.

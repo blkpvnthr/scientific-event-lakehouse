@@ -89,3 +89,36 @@ def test_quality_gate_fails_on_fatal(spark, tmp_settings, monkeypatch):
     )
     with pytest.raises(RuntimeError, match="Quality gate failed"):
         tasks.quality_gate("r1")
+
+
+def test_reconcile_run_fails_on_mismatch(spark, tmp_settings, monkeypatch):
+    """Final reconciliation raises when Gold fact != Delta current, so the
+    watermark (committed after reconcile) is never advanced."""
+    monkeypatch.setattr(tasks, "get_settings", lambda: tmp_settings)
+    monkeypatch.setattr("src.spark.stop_spark_session", lambda s: None)
+
+    # Delta current: 2 rows.
+    current = spark.createDataFrame([{"event_id": "e1"}, {"event_id": "e2"}])
+    current.write.format("delta").save(
+        str(tmp_settings.delta_table_path("silver", "earthquake_events_current"))
+    )
+    # Gold fact: 1 row -> mismatch.
+    spark.createDataFrame([{"event_id": "e1"}]).write.parquet(
+        str(tmp_settings.gold_path / "fact_earthquake_event")
+    )
+    with pytest.raises(RuntimeError, match="Reconciliation failed"):
+        tasks.reconcile_run("r1")
+
+
+def test_reconcile_run_passes_when_counts_match(spark, tmp_settings, monkeypatch):
+    monkeypatch.setattr(tasks, "get_settings", lambda: tmp_settings)
+    monkeypatch.setattr("src.spark.stop_spark_session", lambda s: None)
+    rows = [{"event_id": "e1"}, {"event_id": "e2"}]
+    spark.createDataFrame(rows).write.format("delta").save(
+        str(tmp_settings.delta_table_path("silver", "earthquake_events_current"))
+    )
+    spark.createDataFrame(rows).write.parquet(
+        str(tmp_settings.gold_path / "fact_earthquake_event")
+    )
+    result = tasks.reconcile_run("r1")
+    assert result == {"delta_current": 2, "gold_fact": 2}

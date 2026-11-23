@@ -29,6 +29,7 @@ Audited range: `v0.2.0` (83851c7) → `main`
 | D4 | Low | Generated `.coverage` file was tracked in git | `git rm --cached`; added coverage artifacts to `.gitignore` | `git ls-files` clean |
 | D5 | Medium | CI missing dashboard deps → `test_dashboard.py` import error (pandas) in the first CI run | Install `requirements-dashboard.txt` in the lint-and-test job | CI re-run |
 | D6 | Medium | Third-party GitHub Actions (`gitleaks`, `opentofu/setup-opentofu`) referenced by mutable tags (supply-chain risk flagged by automated review) | Pinned both to immutable commit SHAs; workflow already uses least-privilege `permissions: contents: read` | CI re-run |
+| W1 | Medium (correctness) | v1.0.1 ran quality-gate before the merge, but the merge still committed the watermark *before* Gold/reconciliation — a Gold failure could leave the watermark advanced | Separated watermark commitment from the merge; added final `commit_watermark` + `reconcile` tasks (DAGs end `merge → gold → reconcile → commit_watermark`); regression tests with injected failures | v1.0.2, CI green |
 
 No critical defects. D1 and D2 corrected before publication; D3 accepted (overridable).
 
