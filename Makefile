@@ -44,7 +44,10 @@ delta: ## Merge Silver outputs into transactional Delta tables for RUN_ID
 gold: ## Build Gold dimensional model + analytical datasets
 	$(PYTHON) -m src.gold.build_gold
 
-pipeline: bronze silver delta gold ## Run Bronze -> Silver -> Delta -> Gold for RUN_ID
+commit-watermark: ## Commit the processing watermark (run AFTER gold succeeds)
+	$(PYTHON) -m src.delta_lake.build_delta --run-id $(RUN_ID) --commit-watermark
+
+pipeline: bronze silver delta gold commit-watermark ## Bronze -> Silver -> Delta -> Gold -> commit watermark
 
 profile: ## Profile a completed ingestion run (RUN_ID)
 	$(PYTHON) -m src.profiling.profile_bronze --run-id $(RUN_ID)

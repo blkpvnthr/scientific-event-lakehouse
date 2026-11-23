@@ -6,8 +6,10 @@ Spark runtime. Each callable is idempotent and safe to retry.
 """
 
 from src.orchestration.tasks import (
+    commit_watermark,
     compute_query_interval,
     quality_gate,
+    reconcile_run,
     run_bronze,
     run_delta,
     run_gold,
@@ -16,8 +18,10 @@ from src.orchestration.tasks import (
 )
 
 __all__ = [
+    "commit_watermark",
     "compute_query_interval",
     "quality_gate",
+    "reconcile_run",
     "run_bronze",
     "run_delta",
     "run_gold",

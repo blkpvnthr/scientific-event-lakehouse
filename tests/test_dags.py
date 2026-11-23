@@ -52,3 +52,25 @@ def test_quality_gate_precedes_delta_merge():
         # merge_delta is downstream of quality_gate (transitively).
         assert "merge_delta" in quality.get_flat_relative_ids(upstream=False)
         assert "quality_gate" in merge.get_flat_relative_ids(upstream=True)
+
+
+def test_watermark_commits_after_gold_and_reconcile():
+    """End-to-end watermark guarantee: commit_watermark runs only after the merge,
+    Gold, and reconciliation — so any downstream failure leaves it unchanged."""
+    dagbag = DagBag(dag_folder=str(DAGS_DIR), include_examples=False)
+    gold_task = {
+        "historical_processing": "build_gold",
+        "incremental_ingestion": "refresh_gold",
+    }
+    for dag_id in ("historical_processing", "incremental_ingestion"):
+        dag = dagbag.dags[dag_id]
+        commit = dag.get_task("commit_watermark")
+        upstream = commit.get_flat_relative_ids(upstream=True)
+        # merge, gold, and reconcile all precede the watermark commit.
+        assert "merge_delta" in upstream
+        assert gold_task[dag_id] in upstream
+        assert "reconcile" in upstream
+        # commit_watermark has no downstream tasks that could fail after it in
+        # the incremental DAG (it is terminal there).
+        if dag_id == "incremental_ingestion":
+            assert commit.get_flat_relative_ids(upstream=False) == set()

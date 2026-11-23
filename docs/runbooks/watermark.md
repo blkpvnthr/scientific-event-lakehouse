@@ -2,9 +2,11 @@
 
 ## Background
 The watermark (`metadata.processing_watermarks`, name `silver_max_updated_time`)
-advances **only** in the Delta merge step — which runs **after** the data-quality
-gate — and only when the incoming value is strictly greater. This is by design: a
-fatal quality failure or any upstream failure must not advance it, and an
+advances **only** in a dedicated final `commit_watermark` step — which runs after
+the data-quality gate, the Delta merge, Gold, and reconciliation all succeed — and
+only when the incoming value is strictly greater. The Delta merge itself does not
+advance the watermark. This is by design: a fatal quality failure, a Gold failure,
+a reconciliation mismatch, or any upstream failure must not advance it, and an
 out-of-order/replay run must not move it backwards.
 
 ## Symptoms

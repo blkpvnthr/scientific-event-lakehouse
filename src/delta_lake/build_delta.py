@@ -63,10 +63,52 @@ def _merge_quality(spark: SparkSession, path, incoming) -> None:
     )
 
 
-def build_delta(
+def _watermark_candidate(spark: SparkSession, silver) -> str | None:
+    """Compute the advance-only watermark value (max observed source revision)."""
+    revisions = spark.read.parquet(str(silver / "earthquake_event_revisions"))
+    return revisions.agg(
+        F.date_format(F.max("updated_time"), _TS_FMT).alias("m")
+    ).collect()[0]["m"]
+
+
+def commit_watermark(
     spark: SparkSession, run_id: str, settings: Settings | None = None
+) -> str | None:
+    """Commit the processing watermark — the FINAL step of a successful run.
+
+    Kept separate from the Delta MERGE so the watermark advances only after the
+    merge, Gold, and reconciliation have all succeeded. Advance-only: a smaller
+    value (older/replayed run) never regresses the stored watermark.
+    """
+    settings = settings or get_settings()
+    watermark = _watermark_candidate(spark, settings.silver_path)
+    if watermark:
+        update_watermark(
+            spark,
+            settings.delta_table_path("metadata", "processing_watermarks"),
+            name=WATERMARK_NAME,
+            value=watermark,
+            run_id=run_id,
+        )
+    logger.info("Watermark committed: %s (run=%s)", watermark, run_id)
+    return watermark
+
+
+def build_delta(
+    spark: SparkSession,
+    run_id: str,
+    settings: Settings | None = None,
+    *,
+    advance_watermark: bool = False,
 ) -> DeltaResult:
-    """Merge Silver outputs into Delta and update metadata."""
+    """Merge Silver outputs into Delta and record run metadata.
+
+    Does NOT advance the processing watermark by default: the watermark is
+    committed by ``commit_watermark`` only after Gold and reconciliation succeed
+    (see the DAGs). The watermark *candidate* is still computed and returned.
+    ``advance_watermark=True`` is available for standalone callers that
+    intentionally couple the two.
+    """
     settings = settings or get_settings()
     silver = settings.silver_path
 
@@ -91,11 +133,14 @@ def build_delta(
     current_rows = spark.read.format("delta").load(str(current_path)).count()
     revisions_rows = spark.read.format("delta").load(str(revisions_path)).count()
 
-    # Advance-only watermark on the maximum observed source revision time.
+    # Compute the advance-only watermark candidate (max observed source revision).
+    # It is NOT committed here by default — commit_watermark() does that only after
+    # Gold + reconciliation succeed. advance_watermark=True couples them for
+    # standalone callers.
     watermark = incoming_all.agg(
         F.date_format(F.max("updated_time"), _TS_FMT).alias("m")
     ).collect()[0]["m"]
-    if watermark:
+    if advance_watermark and watermark:
         update_watermark(
             spark,
             watermark_path,
@@ -141,14 +186,24 @@ def main() -> None:
         description="Merge Silver outputs into Delta tables"
     )
     parser.add_argument("--run-id", required=True)
+    parser.add_argument(
+        "--commit-watermark",
+        action="store_true",
+        help="Commit the watermark only (no merge). Run AFTER Gold + reconciliation.",
+    )
     args = parser.parse_args()
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
     )
     spark = build_spark_session("delta-merge", with_delta=True)
     try:
-        result = build_delta(spark, args.run_id)
-        print(json.dumps(asdict(result), indent=2))
+        if args.commit_watermark:
+            wm = commit_watermark(spark, args.run_id)
+            print(json.dumps({"committed_watermark": wm}, indent=2))
+        else:
+            # Merge only; the watermark is committed in a later step.
+            result = build_delta(spark, args.run_id)
+            print(json.dumps(asdict(result), indent=2))
     finally:
         stop_spark_session(spark)
 

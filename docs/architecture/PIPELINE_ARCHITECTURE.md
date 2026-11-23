@@ -48,7 +48,9 @@ All timestamps are UTC. Revision selection and watermarks use `updated_time`
 USGS filters events by origin time but revises records after the fact. The
 incremental DAG re-queries an overlap window (default 7 days) back from the
 watermark; downstream fingerprint-keyed MERGE makes the overlap idempotent. The
-data-quality gate runs **before** the Delta merge, and the watermark advances only
-in that merge, on success, and only if the new value is greater — so a fatal
-quality failure, any upstream failure, or an out-of-order run never advances or
-corrupts it.
+data-quality gate runs **before** the Delta merge, and the watermark is committed
+by a dedicated final `commit_watermark` step **only after** the merge, Gold, and
+reconciliation all succeed (and only if the new value is greater). The merge
+itself does not advance the watermark. So a fatal quality failure, a Gold failure,
+a reconciliation mismatch, any upstream failure, or an out-of-order run never
+advances or corrupts it.

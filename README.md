@@ -1215,30 +1215,38 @@ unit-testable.
 
 | DAG | Purpose |
 |---|---|
-| `historical_processing` | validate → Bronze → Silver → quality gate → Delta → Gold → report |
-| `incremental_ingestion` | watermark → interval → extract → … → Silver → quality gate → merge → refresh Gold |
+| `historical_processing` | validate → Bronze → Silver → quality gate → Delta merge → Gold → reconcile → **commit watermark** → report |
+| `incremental_ingestion` | watermark → interval → extract → … → Silver → quality gate → Delta merge → refresh Gold → reconcile → **commit watermark** |
 | `recovery_replay` | validate manifests → reprocess archived run → reconcile → report |
 
 ```mermaid
 flowchart LR
     V[validate_run] --> B[process_bronze] --> S[normalize_silver]
-    S --> Q[quality_gate] --> D[merge_delta] --> G[build_gold] --> R[publish_report]
+    S --> Q[quality_gate] --> D[merge_delta] --> G[build_gold]
+    G --> RC[reconcile] --> CW[commit_watermark] --> R[publish_report]
 
     style V fill:#6B7280,color:#fff
     style D fill:#2563EB,color:#fff
     style Q fill:#B91C1C,color:#fff
+    style CW fill:#15803D,color:#fff
     style R fill:#15803D,color:#fff
 ```
+
+The processing watermark is committed by a dedicated final `commit_watermark`
+task — only after the Delta merge, Gold, and reconciliation all succeed. The
+merge no longer advances the watermark, so any downstream failure leaves it
+unchanged.
 
 ### Implemented Capabilities
 
 - Three DAGs with task retries, execution timeouts, and explicit dependencies.
 - Idempotent tasks (checksum-verified Bronze, fingerprint-keyed Delta) → retries
   never duplicate records.
-- The quality gate runs **before** the Delta merge, and the watermark is advanced
-  only by that merge on success → a fatal quality failure or any upstream failure
-  halts the run before the watermark moves; `max_active_runs=1` serializes
-  incremental runs.
+- The quality gate runs **before** the Delta merge, and the watermark is committed
+  by a dedicated final `commit_watermark` task **only after** the merge, Gold, and
+  reconciliation succeed → a fatal quality failure, a Gold failure, a
+  reconciliation mismatch, or any upstream failure leaves the watermark unchanged;
+  `max_active_runs=1` serializes incremental runs.
 - Overlapping incremental re-query window for revised events; documented USGS
   query semantics; no large data in XCom (only small summary dicts).
 - Docker image (Java 17 + Spark/Delta) + `docker-compose.yml` (standalone).
